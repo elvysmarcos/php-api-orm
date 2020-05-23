@@ -1,0 +1,19 @@
+{
+    "name": "emdev/php-api-orm",
+    "description": "This package is intended for creating PHP APIs with ORM for MYSQL and SQL",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Elys Marcos",
+            "email": "dev@emdev.com.br"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "EMDev\\API-ORM\\":"src/"
+        }
+    }
+}
