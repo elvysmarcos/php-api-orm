@@ -11,7 +11,7 @@ class SqlDataBase implements IDatabaseDrive
 
     public function __construct()
     {
-        (isset($_ENV['DB_DEBUG']) AND $_ENV['DB_DEBUG']) ? $this->debug = true : null;
+        (isset($_ENV['DB_DEBUG']) && $_ENV['DB_DEBUG']) ? $this->debug = true : null;
     }
 
     public function GetFormattedSelectColumns(string $entity, string $column)
