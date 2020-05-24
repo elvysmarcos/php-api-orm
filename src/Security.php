@@ -7,8 +7,8 @@ use DateTime;
 
 class Security
 {
-    public string $token;
-    public string $device;
+    public $token;
+    public $device;
 
     public function __construct($id = null)
     {
