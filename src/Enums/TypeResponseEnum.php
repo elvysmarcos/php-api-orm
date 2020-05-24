@@ -1,12 +1,6 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: elvys.marcos
- * Date: 08/10/2018
- * Time: 18:51
- */
 
-namespace Core\Enums;
+namespace APIORM\Enums;
 
 abstract class TypeResponseEnum
 {

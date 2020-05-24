@@ -1,14 +1,8 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: elvys.marcos
- * Date: 08/10/2018
- * Time: 20:58
- */
 
-namespace Core;
+namespace APIORM;
 
-use Core\Resources\Content;
+use APIORM\Resources\Content;
 
 class Entity implements IEntity
 {

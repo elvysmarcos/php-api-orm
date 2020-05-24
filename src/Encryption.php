@@ -1,12 +1,6 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: elvys.marcos
- * Date: 16/09/2018
- * Time: 17:07
- */
 
-namespace Core;
+namespace APIORM;
 
 class Encryption
 {

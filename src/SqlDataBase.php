@@ -1,9 +1,9 @@
 <?php
 
 
-namespace Core;
+namespace APIORM;
 
-use Core\Enums\TypeResponseEnum;
+use APIORM\Enums\TypeResponseEnum;
 
 class SqlDataBase implements IDatabaseDrive
 {

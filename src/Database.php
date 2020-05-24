@@ -1,9 +1,9 @@
 <?php
 
-namespace Core;
+namespace APIORM;
 
-use Core\Enums\TypeResponseEnum;
-use Core\Resources\Content;
+use APIORM\Enums\TypeResponseEnum;
+use APIORM\Resources\Content;
 
 class Database
 {

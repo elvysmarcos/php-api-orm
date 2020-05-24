@@ -1,14 +1,8 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: elvys.marcos
- * Date: 07/10/2018
- * Time: 13:58
- */
 
-namespace Core;
+namespace APIORM;
 
-use Core\Enums\TypeResponseEnum;
+use APIORM\Enums\TypeResponseEnum;
 use Exception;
 use Throwable;
 

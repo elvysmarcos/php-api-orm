@@ -1,12 +1,6 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: elvys.marcos
- * Date: 19/08/2018
- * Time: 22:37
- */
 
-namespace Core;
+namespace APIORM;
 
 use ReflectionFunction;
 

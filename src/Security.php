@@ -1,14 +1,8 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: elvys.marcos
- * Date: 13/09/2018
- * Time: 22:44
- */
 
-namespace Core;
+namespace APIORM;
 
-use Core\Enums\TypeResponseEnum;
+use APIORM\Enums\TypeResponseEnum;
 use DateTime;
 
 class Security

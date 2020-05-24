@@ -6,7 +6,7 @@
  * Time: 18:51
  */
 
-namespace Core\Resources;
+namespace APIORM\Resources;
 
 class Content
 {
