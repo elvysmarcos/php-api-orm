@@ -1,5 +1,5 @@
 {
-    "name": "emdev/php-api-orm",
+    "name": "emdev/api-orm",
     "description": "This package is intended for creating PHP APIs with ORM for MYSQL and SQL",
     "type": "library",
     "keywords": ["php api","php orm"],
@@ -11,13 +11,13 @@
             "email": "dev@emdev.com.br"
         }
     ],
-    "minimum-stability": "stable",
+    "minimum-stability": "dev",
     "require": {
         "php": ">=7.4.0"
     },
     "autoload": {
         "psr-4": {
-            "EMDev\\API-ORM\\":"src/"
+            "APIORM":"src/"
         }
     }
 }
