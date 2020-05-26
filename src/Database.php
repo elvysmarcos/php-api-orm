@@ -336,9 +336,47 @@ class Database
     {
         $bt = debug_backtrace();
         $file = file($bt[1]['file']);
-        $src = $file[$bt[1]['line'] - 1];
+        $src = $this->GetParametersConditionsAux($part, $file, ($bt[1]['line'] - 1));
         $part = '#(.*)' . $part . ' *?\( *?(.*) *?\)(.*)([\n])#i';
         return $var = preg_replace($part, '$2', $src);
+    }
+
+    private function GetParametersConditionsAux($part, $file, $line)
+    {
+        $rowsUp = $this->GetParametersConditionsUp($part, $file, $line);
+        $rowsDow = $this->GetParametersConditionsDown($file, $line + 1, $rowsUp);
+        $fix = trim(str_replace("\r\n ", '', $rowsDow), ' ');
+        return $fix;
+    }
+
+    private function GetParametersConditionsUp($part, $file, $line, $src = null)
+    {
+        if ($line < 0 or !isset($file[$line])) {
+            new ApiCustomException('Invalid class content');
+        }
+
+        $row = $file[$line];
+
+        if (preg_match("/{$part}\(/i", $row)) {
+            return ($row . $src);
+        } else {
+            return $this->GetParametersConditionsUp($part, $file, $line - 1, ($row . $src));
+        }
+    }
+
+    private function GetParametersConditionsDown($file, $line, $src)
+    {
+        if ($line < 0 or !isset($file[$line])) {
+            new ApiCustomException('Invalid class content');
+        }
+
+        $row = $file[$line];
+
+        if (preg_match('/\);/i', $src)) {
+            return $src;
+        } else {
+            return $this->GetParametersConditionsDown($file, $line + 1, $src . $row);
+        }
     }
 
     private function GetConditions()
@@ -352,7 +390,7 @@ class Database
                     $value['compare'] = '(' . implode(',', $value['compare']) . ')';
                 }
 
-                if (isset($value['agroup']) and $value['agroup'] === true) {
+                if (isset($value['agroup']) and $value['agroup'] === '(') {
                     $query .= " {$value['operator']} (";
 
                     $value['operator'] = null;
@@ -362,8 +400,8 @@ class Database
 
                 $query .= $this->drive->GetFormattedConditions($value['operator'], $value['entity'], $value['column'], $value['condition'], $value['compare']);
 
-                if (isset($value['agroup']) and $value['agroup'] === false) {
-                    $query .= " )";
+                if (isset($value['agroup']) and $value['agroup'] === ')') {
+                    $query .= ')';
                 }
             }
         }
@@ -433,9 +471,9 @@ class Database
                 if (gettype($value) === 'integer' || gettype($value) === 'double') {
                     $values .= $values === null ? $value : ",{$value}";
                 } else if (gettype($value) === 'boolean') {
-                    $values .= $values === null ? $value : "," . +$value;
+                    $values .= $values === null ? $value : ',' . +$value;
                 } else if ($value === null) {
-                    $values .= $values === null ? $value : ", NULL";
+                    $values .= $values === null ? $value : ', NULL';
                 } else {
                     $values .= $values === null ? "'{$value}'" : ",'{$value}'";
                 }
@@ -463,9 +501,9 @@ class Database
 
                 foreach ($entityName::_id as $key => $autoIncrement) {
                     if ($autoIncrement && $recentId) {
-                        $DB->Where($key, '=', $recentId, 'AND', null, '$e');
+                        $DB->Where($key, '=', $recentId, null, '$e');
                     } else if (key_exists($key, $properties)) {
-                        $DB->Where($key, '=', $properties[$key], 'AND', null, '$e');
+                        $DB->Where($key, '=', $properties[$key], null, '$e');
                     }
                 }
 
@@ -497,10 +535,8 @@ class Database
         $this->GetEntities($entityClass, $path, (array)$entity);
     }
 
-    public function Where($defaultColumn, $condition, $compare = null, $operator = 'AND', $agroup = null, string $defaultEntityVar = null)
+    private function AddConditions($param, $defaultColumn, $condition, $compare, string $operator, $agroup, string $defaultEntityVar = null)
     {
-        $param = $this->GetParametersConditions(__FUNCTION__);
-
         $var = explode(',', $param)[0];
 
         $defaultVar = $var;
@@ -536,6 +572,24 @@ class Database
         $this->conditions[] = array('entity' => $entity, 'column' => $column, 'condition' => $condition, 'compare' => $compare, 'operator' => $operator, 'agroup' => $agroup);
     }
 
+    public function Where($defaultColumn, string $condition, $compare = null, string $agroup = null, string $defaultEntityVar = null)
+    {
+        $param = $this->GetParametersConditions(__FUNCTION__);
+        $this->AddConditions($param, $defaultColumn, $condition, $compare, 'AND', $agroup, $defaultEntityVar);
+    }
+
+    public function And($defaultColumn, string $condition, $compare = null, string $agroup = null, string $defaultEntityVar = null)
+    {
+        $param = $this->GetParametersConditions(__FUNCTION__);
+        $this->AddConditions($param, $defaultColumn, $condition, $compare, 'AND', $agroup, $defaultEntityVar);
+    }
+
+    public function Or($defaultColumn, string $condition, $compare = null, string $agroup = null, string $defaultEntityVar = null)
+    {
+        $param = $this->GetParametersConditions(__FUNCTION__);
+        $this->AddConditions($param, $defaultColumn, $condition, $compare, 'OR', $agroup, $defaultEntityVar);
+    }
+
     public function First($params = null)
     {
         $data = $this->AuxSelect($params);
@@ -562,7 +616,7 @@ class Database
         } else if ($this->saveChanges === 'delete') {
             return $this->AuxDelete($this->saveChangesEntity);
         } else {
-            Response::show(TypeResponseEnum::SQL, 'Argumentos incompletos para está ação');
+            Response::Show(TypeResponseEnum::BadRequest, 'Argumentos incompletos para está ação');
             return false;
         }
     }
@@ -614,14 +668,14 @@ class Database
                 $DB->Select($e = new $entityName);
 
                 foreach ($entityName::_id as $key => $autoIncrement) {
-                    $condition = "=";
+                    $condition = '=';
 
                     if ($properties[$key] === null) {
-                        $condition = "IS NULL";
+                        $condition = 'IS NULL';
                     }
 
                     if (key_exists($key, $properties)) {
-                        $DB->Where($key, $condition, $properties[$key], 'AND', null, '$e');
+                        $DB->Where($key, $condition, $properties[$key], null, '$e');
                     }
                 }
 

@@ -8,6 +8,12 @@ class Api
 {
     function __construct()
     {
+        if (isset($_SESSION['link'])) {
+            \mysqli_rollback($_SESSION['link']);
+            \mysqli_close($_SESSION['link']);
+            unset($_SESSION['link']);
+        }
+
         //<editor-fold desc=" [Headers] ">
         if (isset($_SERVER['HTTP_ORIGIN'])) {
 
@@ -58,6 +64,6 @@ class Api
         $Route = new Route();
         $Route->Controller();
 
-        Response::show(TypeResponseEnum::NotImplemented);
+        Response::Show(TypeResponseEnum::NotImplemented);
     }
 }

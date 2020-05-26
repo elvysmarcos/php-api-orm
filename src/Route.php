@@ -2,8 +2,6 @@
 
 namespace APIORM;
 
-use ReflectionFunction;
-
 class Route
 {
     private $path = null;
@@ -73,6 +71,7 @@ class Route
 
         $args = array();
         $verifiedRoutes = array();
+        $argsType = array();
         $argsDefaultResult = array();
         $argsResult = array();
 
@@ -81,7 +80,7 @@ class Route
         if (count($routes) == count($this->route)) {
 
             try {
-                $fx = new ReflectionFunction($execute);
+                $fx = new \ReflectionFunction($execute);
             } catch (\ReflectionException $e) {
                 new ApiCustomException($e->getMessage());
             }
@@ -90,20 +89,30 @@ class Route
 
             if (count($setArg)) {
                 foreach ($setArg as $key => $value) {
-                    $nameArg = $value->getName();
-                    $arg = '$' . $nameArg;
-                    $defaultValue = null;
+                    $argName = $value->getName();
+
+                    $argType = $value->getType();
+
+                    if ($argType) {
+                        $argType = $argType->getName();
+                    }
+
+                    $argsType[$argName] = $argType;
+
+                    $arg = '$' . $argName;
+                    $valueDefault = null;
 
                     if ($value->isDefaultValueAvailable()) {
                         try {
-                            $defaultValue = $value->getDefaultValue();
-                            $argsDefaultResult[$nameArg] = $defaultValue;
+                            $valueDefault = $value->getDefaultValue();
+
+                            $argsDefaultResult[$argName] = $valueDefault;
                         } catch (\ReflectionException $e) {
                             new ApiCustomException($e->getMessage());
                         }
                     }
 
-                    $args[$arg] = $defaultValue;
+                    $args[$arg] = $valueDefault;
                 }
             }
 
@@ -138,19 +147,19 @@ class Route
                     $fullKeyName = str_replace('$', '', $key);
 
                     if ($countPostArg && key_exists($fullKeyName, $postArg)) {
-                        $postValue = $this->GetTypeValue($postArg[$fullKeyName]);
+                        $postValue = $this->GetTypeValue($postArg[$fullKeyName], $argsType[$fullKeyName]);
                         $args[$key] = $postValue;
                         $argsResult[] = $postValue;
                     } else if ($countGetArg && key_exists($fullKeyName, $getArgs)) {
-                        $getValue = $this->GetTypeValue($getArgs[$fullKeyName]);
+                        $getValue = $this->GetTypeValue($getArgs[$fullKeyName], $argsType[$fullKeyName]);
                         $args[$key] = $getValue;
                         $argsResult[] = $getValue;
                     } else if ($value !== null && !is_array($value)) {
-                        $argsResult[] = $this->GetTypeValue($value);
+                        $argsResult[] = $this->GetTypeValue($value, $argsType[$fullKeyName]);
                     } else if ($value !== null && is_array($value)) {
-                        $argsResult[] = $this->GetTypeValue($postArg);
+                        $argsResult[] = $this->GetTypeValue($postArg, $argsType[$fullKeyName]);
                     } else if (key_exists($fullKeyName, $argsDefaultResult)) {
-                        $argsResult[] = $this->GetTypeValue($argsDefaultResult[$fullKeyName]);
+                        $argsResult[] = $this->GetTypeValue($argsDefaultResult[$fullKeyName], $argsType[$fullKeyName]);
                     }
                 }
             }
@@ -162,14 +171,37 @@ class Route
         return array($very, $verifiedRoutes, $args, $argsResult);
     }
 
-    private function GetTypeValue($value)
+    private function GetTypeValue($value, $argType)
     {
         if ($value === 'null' || $value === 'undefined') {
             return null;
         }
 
         if (is_array($value)) {
+            $checkClassExist = class_exists($argType);
+
+            if ($checkClassExist && method_exists($argType, 'ImportData')) {
+                try {
+                    $newInstance = new $argType;
+                    $newInstance->ImportData($value);
+                    $value = $newInstance;
+                } catch (\Exception $e) {
+                    new ApiCustomException($e->getMessage());
+                }
+            }
+
             return $value;
+        }
+
+        switch ($argType) {
+            case 'DateTime':
+                try {
+                    return new \DateTime($value);
+                } catch (\Exception $e) {
+                    new ApiCustomException($e->getMessage());
+                }
+
+                break;
         }
 
         $int = filter_var($value, FILTER_VALIDATE_INT);
@@ -200,7 +232,7 @@ class Route
         }
     }
 
-    function Route($method, $route, $execute, ISession $auth = null)
+    private function Route(string $method, string $route, object $execute, ISession $auth = null)
     {
         if ($method == METHOD) {
             try {
@@ -219,5 +251,25 @@ class Route
                 call_user_func_array($execute, $argsResult);
             }
         }
+    }
+
+    public function GET(string $route, object $execute, ISession $auth = null)
+    {
+        $this->Route('GET', $route, $execute, $auth);
+    }
+
+    public function POST(string $route, object $execute, ISession $auth = null)
+    {
+        $this->Route('POST', $route, $execute, $auth);
+    }
+
+    public function PUT(string $route, object $execute, ISession $auth = null)
+    {
+        $this->Route('POST', $route, $execute, $auth);
+    }
+
+    public function DELETE(string $route, object $execute, ISession $auth = null)
+    {
+        $this->Route('POST', $route, $execute, $auth);
     }
 }

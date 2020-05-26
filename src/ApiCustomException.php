@@ -16,6 +16,6 @@ class ApiCustomException extends Exception
             mysqli_rollback($_SESSION['link']);
         }
 
-        Response::show(TypeResponseEnum::BadRequest, $message);
+        Response::Show(TypeResponseEnum::BadRequest, $message);
     }
 }

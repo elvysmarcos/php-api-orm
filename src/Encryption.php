@@ -4,24 +4,24 @@ namespace APIORM;
 
 class Encryption
 {
-    static function BasicEncrypt($data)
+    static function BasicEncrypt(array $data): string
     {
         return Encryption::Base64UrlEncode(strrev(Encryption::Base64UrlEncode(json_encode($data))));
     }
 
-    static function BasicDecrypting($data)
+    static function BasicDecrypting(string $data): array
     {
         return json_decode(Encryption::Base64UrlDecode(strrev(Encryption::Base64UrlDecode($data))), true);
     }
 
-    static function Base64UrlEncode($data)
+    static function Base64UrlEncode(array $data): string
     {
         $urlSafeData = strtr(base64_encode($data), '+/', '-_');
 
         return rtrim($urlSafeData, '=');
     }
 
-    static function Base64UrlDecode($data)
+    static function Base64UrlDecode(string $data): array
     {
         $urlUnsafeData = strtr($data, '-_', '+/');
 

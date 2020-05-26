@@ -71,4 +71,111 @@ class Entity implements IEntity
 
         return $target;
     }
+
+    static function Find($id = null)
+    {
+        $class = get_called_class();
+
+        $values = [];
+
+        if (gettype($id) === 'integer') {
+            foreach ($class::_id as $key => $autoIncrement) {
+                $values[$key] = $id;
+            }
+        } else if (is_array($id) && count($id) === count($class::_id)) {
+            $index = 0;
+            foreach ($class::_id as $key => $autoIncrement) {
+                $values[$key] = $id[$index];
+                $index++;
+            }
+        } else {
+            new ApiCustomException('Invalid method call, you need send a correct value');
+        }
+
+        $db = new Database();
+        $db->Select($e = new $class);
+
+        foreach ($class::_id as $key => $autoIncrement) {
+
+            $condition = '=';
+
+            if ($values[$key] === null) {
+                $condition = 'IS NULL';
+            }
+
+            $db->Where($key, $condition, $values[$key], null, '$e');
+        }
+
+        $result = $db->First();
+
+        return $result;
+    }
+
+    static function All()
+    {
+        $class = get_called_class();
+
+        $db = new Database();
+        $db->Select($e = new $class);
+        $result = $db->ToList();
+
+        return $result;
+    }
+
+    static function Paginate(int $current, int $limit)
+    {
+        $class = get_called_class();
+
+        $db = new Database();
+        $db->Select($e = new $class);
+        $db->PageResponse($current, $limit);
+        $result = $db->ToList();
+
+        return $result;
+    }
+
+    function Update()
+    {
+        $db = new Database();
+        $db->Update($this);
+        $db->SaveChanges();
+    }
+
+    static function Delete($id = null)
+    {
+        $class = get_called_class();
+
+        $values = [];
+
+        if (gettype($id) === 'integer') {
+            foreach ($class::_id as $key => $autoIncrement) {
+                $values[$key] = $id;
+            }
+        } else if (is_array($id) && count($id) === count($class::_id)) {
+            $index = 0;
+            foreach ($class::_id as $key => $autoIncrement) {
+                $values[$key] = $id[$index];
+                $index++;
+            }
+        } else {
+            new ApiCustomException('Invalid method call, you need send a correct value');
+        }
+
+        $db = new Database();
+        $db->Delete($e = new $class);
+
+        foreach ($class::_id as $key => $autoIncrement) {
+            $condition = '=';
+
+            if ($values[$key] === null) {
+                $condition = 'IS NULL';
+            }
+
+            $db->Where($key, $condition, $values[$key], null, '$e');
+        }
+
+        $result = $db->SaveChanges();
+
+        return $result;
+    }
 }

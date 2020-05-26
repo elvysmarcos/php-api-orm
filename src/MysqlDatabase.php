@@ -17,7 +17,7 @@ class MysqlDatabase implements IDatabaseDrive
 
     public function GetFormattedSelectColumns(string $entity, string $column)
     {
-        return " `{$entity}`.`{$column}` as '{$entity}.{$column}'";
+        return " `{$entity}`.`{$column}` AS '{$entity}.{$column}'";
     }
 
     public function GetFormattedSelectQuery(string $table, string $entity, string $columns)
@@ -82,7 +82,9 @@ class MysqlDatabase implements IDatabaseDrive
         $query = null;
         $entity = $entity ? " `{$entity}`." : null;
 
-        switch (strtoupper($condition)) {
+        $condition = strtoupper($condition);
+
+        switch ($condition) {
             case '=':
             case '!=':
             case '>':
@@ -139,7 +141,7 @@ class MysqlDatabase implements IDatabaseDrive
 
     public function CustomQuery($query)
     {
-        Response::show(TypeResponseEnum::SQL, 'Método não é válid');
+        Response::Show(TypeResponseEnum::BadRequest, 'Method is not valid');
         return null;
     }
 
@@ -158,11 +160,11 @@ class MysqlDatabase implements IDatabaseDrive
         debugSql(str_replace('', '\"', "\rError: " . mysqli_error($this->DBLink()) . "\rQuery: {$query}"), null, $line);
         $error = mysqli_error($this->DBLink());
 
-        !$error ? $error = 'Erro não reonhecido' : null;
+        !$error ? $error = 'Unrecognized error' : null;
 
         mysqli_rollback($this->DBLink());
 
-        Response::show(TypeResponseEnum::SQL, $error);
+        Response::Show(TypeResponseEnum::BadRequest, $error);
         return null;
     }
 }

@@ -4,7 +4,7 @@ namespace APIORM;
 
 class Response
 {
-    static function show(int $code = 200, $response = null)
+    static function Show(int $code = 200, $response = null)
     {
         header("content-type: application/json; charset=utf-8");
 
@@ -22,7 +22,7 @@ class Response
         exit;
     }
 
-    static function download(int $code = 200, $response = null)
+    static function Download(int $code = 200, $response = null)
     {
         http_response_code($code);
 

@@ -3,56 +3,46 @@
 namespace APIORM;
 
 use APIORM\Enums\TypeResponseEnum;
-use DateTime;
 
 class Security
 {
-    public $token;
     public $device;
 
-    public function __construct($id = null)
+    private $token;
+    private $iat;
+    private $header = [];
+    private $payload = [];
+    private $signature;
+
+    public function __construct()
     {
         $headers = apache_request_headers();
 
         if (isset($headers['Authorization']) and $headers['Authorization']) {
             $this->token = $headers['Authorization'];
-            list($parameters, $header, $payload, $signature) = $this->GetDataToken($this->token);
-
-            $this->device = $payload['key'];
-        } else if ($id) {
-            $this->device = $this->DeviceGenerate($id);
-            $this->token = $this->TokenGenerate($this->device);
+            $this->GetDataToken();
         }
     }
 
-    public function GetDataToken(string $token): ?array
+    private function ExtractDataToken()
     {
-        $parameters = explode('.', str_replace('Bearer ', null, $token));
+        $parameters = explode('.', str_replace('Bearer ', null, $this->token));
 
         $header = null;
         $payload = null;
         $signature = null;
 
         if (count($parameters) === 3) {
-            $header = json_decode(Encryption::Base64UrlDecode($parameters[0]), true);
-            $payload = json_decode(Encryption::Base64UrlDecode($parameters[1]), true);
-
-            $signature = Encryption::Base64UrlEncode(
-                hash_hmac(
-                    'sha256',
-                    Encryption::Base64UrlEncode(json_encode($header)) . '.' . Encryption::Base64UrlEncode(json_encode($payload)),
-                    $payload['key'],
-                    true
-                )
-            );
+            $this->header = json_decode(Encryption::Base64UrlDecode($parameters[0]), true);
+            $this->payload = json_decode(Encryption::Base64UrlDecode($parameters[1]), true);
+            $this->signature = $parameters[3];
+            $this->device = $this->payload['device'];
         }
-
-        return array($parameters, $header, $payload, $signature);
     }
 
-    private function DeviceGenerate(int $id): string
+    public function DeviceGenerate(int $id): string
     {
-        $characters = 'abcdxywzABCDZYWZ0123456789';
+        $characters = 'abcdxywzABCDZYWZ0123456789@#';
 
         $max = mb_strlen($characters) - 1;
 
@@ -62,50 +52,86 @@ class Security
             $code .= $characters[mt_rand(0, $max)];
         }
 
-        return Encryption::BasicEncrypt(array($code, $id, TIME));
+        return Encryption::BasicEncrypt(array($code, $id, time()));
     }
 
-    public function TokenGenerate(string $device, ?array $setPayload = null): string
+    public function ExtractDataDevice($device): int
     {
+        $data = Encryption::BasicDecrypting($device);
+
+        if (is_array($data) && count($data) === 3) {
+            $date = DateTime::createFromFormat(null, $date[2]);
+            $verify = $date->modify('+1 year');
+            $now = new \DateTime();
+
+            if ($verify > $now) {
+                return $data[1];
+            }
+        }
+
+        return false;
+    }
+
+    public function TokenGenerate(string $device, string $secret, ?array $customPayload = null): string
+    {
+        $this->iat = time();
+
         $header = array(
             'alg' => 'HS256',
             'typ' => 'JWT'
         );
 
         $payload = array(
-            'iat' => TIME,
-            'key' => $device
+            'iat' => $this->iat,
+            'device' => $device
         );
 
-        if (is_array($setPayload) and count($setPayload)) {
-            $payload = array_merge($payload, $setPayload);
+        if (is_array($customPayload) and count($customPayload)) {
+            $payload = array_merge($payload, $customPayload);
         }
 
         $raw = Encryption::Base64UrlEncode(json_encode($header)) . '.' . Encryption::Base64UrlEncode(json_encode($payload));
 
-
-        $signature = Encryption::Base64UrlEncode(hash_hmac('sha256', $raw, $device, true));
+        $signature = Encryption::Base64UrlEncode(hash_hmac('sha256', $raw, $secret, true));
 
         return "{$raw}.{$signature}";
     }
 
-    public function AuthenticatedRegion(ISession $SessionBusiness)
+    private function CheckSignature($secret)
     {
-        $SessionBusiness->Destroy();
+        if (count($this->header) && count($this->payload)) {
+            $signature = Encryption::Base64UrlEncode(
+                hash_hmac(
+                    'sha256',
+                    Encryption::Base64UrlEncode(json_encode($this->header)) . '.' . Encryption::Base64UrlEncode(json_encode($this->payload)),
+                    $secret,
+                    true
+                )
+            );
 
-        $dataDate = $SessionBusiness->Get($this->device);
-
-        if ($dataDate) {
-            $date = new DateTime();
-            $dateCheck = $date->modify('+30 minutes');
-            $now = new DateTime();
-
-            if ($dateCheck > $now) {
-                $SessionBusiness->Update($this->device);
+            if ($this->signature = $signature) {
                 return true;
             }
         }
 
-        Response::show(TypeResponseEnum::Unauthorized, 'Sessão não autênticada');
+        return false;
+    }
+
+    public function AuthenticatedRegion(ISession $session)
+    {
+        $session->Destroy();
+
+        $iat = $session->GetIat($this->device);
+        $secret = $session->GetSecret($this->device);
+
+        $signature = $this->CheckSignature($secret);
+
+        if ($signature && $iat = $this->iat) {
+            $date = time($session->Update($this->device));
+            $this->iat = $date->getTimestamp();
+            return true;
+        }
+
+        Response::Show(TypeResponseEnum::Unauthorized, $session->GetUnauthorizedText());
     }
 }

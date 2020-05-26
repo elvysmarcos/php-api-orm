@@ -6,13 +6,17 @@ namespace APIORM;
 
 interface ISession
 {
-    static function getPerson();
+    static function GetPerson(): ?int;
 
-    static function getApp();
+    static function GetApp(): ?int;
 
-    public function Get(string $device);
+    public function GetIat(string $device): ?int;
 
-    public function Update(string $device);
+    public function GetSecret(string $device): ?string;
+
+    public function Update(string $device): \DateTime;
 
     public function Destroy();
+
+    public function GetUnauthorizedText(): string;
 }

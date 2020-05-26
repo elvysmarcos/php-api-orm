@@ -16,7 +16,7 @@ class SqlDataBase implements IDatabaseDrive
 
     public function GetFormattedSelectColumns(string $entity, string $column)
     {
-        return "[{$entity}].[{$column}] as '{$entity}.{$column}'";
+        return "[{$entity}].[{$column}] AS '{$entity}.{$column}'";
     }
 
     public function GetFormattedSelectQuery(string $table, string $entity, string $columns)
@@ -81,7 +81,9 @@ class SqlDataBase implements IDatabaseDrive
         $query = null;
         $entity = $entity ? " [{$entity}]." : null;
 
-        switch (strtoupper($condition)) {
+        $condition = strtoupper($condition);
+
+        switch ($condition) {
             case '=':
             case '!=':
             case '>':
@@ -175,7 +177,7 @@ class SqlDataBase implements IDatabaseDrive
             if ($_SESSION['link'] === false) {
                 unset($_SESSION['link']);
                 $error = sqlsrv_errors();
-                Response::show(TypeResponseEnum::SQL, $error[0]['message']);
+                Response::Show(TypeResponseEnum::BadRequest, $error[0]['message']);
             }
         }
 
@@ -191,7 +193,7 @@ class SqlDataBase implements IDatabaseDrive
 
         sqlsrv_rollback($_SESSION['link']);
 
-        Response::show(TypeResponseEnum::SQL, $error[0]['message']);
+        Response::Show(TypeResponseEnum::BadRequest, $error[0]['message']);
         return null;
     }
 }
