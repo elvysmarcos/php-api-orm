@@ -265,11 +265,11 @@ class Route
 
     public function PUT(string $route, object $execute, ISession $auth = null)
     {
-        $this->Route('POST', $route, $execute, $auth);
+        $this->Route('PUT', $route, $execute, $auth);
     }
 
     public function DELETE(string $route, object $execute, ISession $auth = null)
     {
-        $this->Route('POST', $route, $execute, $auth);
+        $this->Route('DELETE', $route, $execute, $auth);
     }
 }
