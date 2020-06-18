@@ -134,11 +134,25 @@ class Entity implements IEntity
         return $result;
     }
 
+    function Insert()
+    {
+        $db = new Database();
+        $result = $db->Insert($this);
+
+        foreach (clone($this) as $key => $value) {
+            $this->$key = $result->$key;
+        }
+    }
+
     function Update()
     {
         $db = new Database();
         $db->Update($this);
-        $db->SaveChanges();
+        $result = $db->SaveChanges();
+
+        foreach (clone($this) as $key => $value) {
+            $this->$key = $result->$key;
+        }
     }
 
     static function Delete($id = null)

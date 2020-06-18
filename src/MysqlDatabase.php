@@ -82,7 +82,11 @@ class MysqlDatabase implements IDatabaseDrive
         $query = null;
         $entity = $entity ? " `{$entity}`." : null;
 
-        $condition = strtoupper($condition);
+        $condition = strtoupper(trim($condition));
+
+        if ($compare === null && $condition === '=') {
+            $condition = 'IS NULL';
+        }
 
         switch ($condition) {
             case '=':
@@ -141,7 +145,7 @@ class MysqlDatabase implements IDatabaseDrive
 
     public function CustomQuery($query)
     {
-        Response::Show(TypeResponseEnum::BadRequest, 'Method is not valid');
+        new ApiCustomException('Method is not valid');
         return null;
     }
 
@@ -162,9 +166,6 @@ class MysqlDatabase implements IDatabaseDrive
 
         !$error ? $error = 'Unrecognized error' : null;
 
-        mysqli_rollback($this->DBLink());
-
-        Response::Show(TypeResponseEnum::BadRequest, $error);
-        return null;
+        new ApiCustomException($error);
     }
 }

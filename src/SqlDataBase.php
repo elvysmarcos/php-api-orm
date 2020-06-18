@@ -81,7 +81,11 @@ class SqlDataBase implements IDatabaseDrive
         $query = null;
         $entity = $entity ? " [{$entity}]." : null;
 
-        $condition = strtoupper($condition);
+        $condition = strtoupper(trim($condition));
+
+        if ($compare === null && $condition === '=') {
+            $condition = 'IS NULL';
+        }
 
         switch ($condition) {
             case '=':

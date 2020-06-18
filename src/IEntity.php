@@ -16,7 +16,9 @@ interface IEntity
 
     static function Paginate(int $current, int $limit);
 
-    function Update();
+	function Insert();
+    
+	function Update();
 
     static function Delete($id = null);
 }
