@@ -66,7 +66,10 @@ class Route
         if ($route) {
             $route = ltrim($route, '/');
             $route = rtrim($route, '/');
-            $routes = explode('/', $route);
+
+            if($route){
+                $routes = explode('/', $route);
+            }
         }
 
         $args = array();
