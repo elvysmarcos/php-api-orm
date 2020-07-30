@@ -3,6 +3,7 @@
 namespace APIORM;
 
 use APIORM\Enums\TypeResponseEnum;
+use DateTime;
 
 class Security
 {
@@ -20,7 +21,7 @@ class Security
 
         if (isset($headers['Authorization']) and $headers['Authorization']) {
             $this->token = $headers['Authorization'];
-            $this->GetDataToken();
+            $this->ExtractDataToken();
         }
     }
 
@@ -60,9 +61,9 @@ class Security
         $data = Encryption::BasicDecrypting($device);
 
         if (is_array($data) && count($data) === 3) {
-            $date = DateTime::createFromFormat(null, $date[2]);
+            $date = DateTime::createFromFormat(null, $data[2]);
             $verify = $date->modify('+1 year');
-            $now = new \DateTime();
+            $now = new DateTime();
 
             if ($verify > $now) {
                 return $data[1];
