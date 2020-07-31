@@ -16,10 +16,7 @@
   ],
   "minimum-stability": "dev",
   "require": {
-    "php": ">=7.4.0",
-    "ext-apache": "*",
-    "ext-json": "*",
-    "ext-mbstring": "*"
+    "php": ">=7.4.0"
   },
   "autoload": {
     "psr-4": {
