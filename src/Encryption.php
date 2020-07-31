@@ -14,7 +14,7 @@ class Encryption
         return json_decode(Encryption::Base64UrlDecode(strrev(Encryption::Base64UrlDecode($data))), true);
     }
 
-    static function Base64UrlEncode(array $data): string
+    static function Base64UrlEncode(string $data): string
     {
         $urlSafeData = strtr(base64_encode($data), '+/', '-_');
 
