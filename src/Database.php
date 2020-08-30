@@ -318,7 +318,7 @@ class Database
             foreach ($entityName::_id as $key => $autoIncrement) {
                 if (key_exists($key, $properties)) {
 
-                    $value = "= {$properties[$key]}";
+                    $value = "= '{$properties[$key]}'";
 
                     if ($properties[$key] === null) {
                         $value = "IS NULL";
