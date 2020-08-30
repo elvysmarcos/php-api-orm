@@ -10,8 +10,6 @@ interface ISession
 
     static function GetApp(): ?int;
 
-    public function GetIat(string $device): ?int;
-
     public function GetSecret(string $device): ?string;
 
     public function Update(string $device): \DateTime;
