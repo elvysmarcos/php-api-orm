@@ -36,7 +36,7 @@ class Security
         if (count($parameters) === 3) {
             $this->header = json_decode(Encryption::Base64UrlDecode($parameters[0]), true);
             $this->payload = json_decode(Encryption::Base64UrlDecode($parameters[1]), true);
-            $this->signature = $parameters[3];
+            $this->signature = $parameters[2];
             $this->device = $this->payload['device'];
         }
     }
@@ -61,7 +61,7 @@ class Security
         $data = Encryption::BasicDecrypting($device);
 
         if (is_array($data) && count($data) === 3) {
-            $date = DateTime::createFromFormat(null, $data[2]);
+            $date = new DateTime(date('Y-m-d H:i:s', $data[2]));
             $verify = $date->modify('+1 year');
             $now = new DateTime();
 
@@ -122,13 +122,12 @@ class Security
     {
         $session->Destroy();
 
-        $iat = $session->GetIat($this->device);
         $secret = $session->GetSecret($this->device);
 
         $signature = $this->CheckSignature($secret);
 
-        if ($signature && $iat = $this->iat) {
-            $date = time($session->Update($this->device));
+        if ($signature) {
+            $date = $session->Update($this->device);
             $this->iat = $date->getTimestamp();
             return true;
         }
