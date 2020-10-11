@@ -20,7 +20,7 @@ class Route
         $empty = true;
 
         if (count($routers)) {
-            $path = PATH_ROOT . 'Controller/';
+            $path = $_ENV['PATH_ROOT'] . 'Controller/';
 
             foreach ($routers as $key => $value) {
 
@@ -237,7 +237,7 @@ class Route
 
     private function Route(string $method, string $route, object $execute, ISession $auth = null)
     {
-        if ($method == METHOD) {
+        if ($method == $_SERVER['REQUEST_METHOD']) {
             try {
                 list($very, $verifiedRoutes, $args, $argsResult) = $this->GetRouteArgs($route, $execute);
             } catch (ApiCustomException $e) {

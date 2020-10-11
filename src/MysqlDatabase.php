@@ -3,7 +3,6 @@
 
 namespace APIORM;
 
-use APIORM\Enums\TypeResponseEnum;
 use mysqli;
 
 class MysqlDatabase implements IDatabaseDrive
@@ -12,7 +11,7 @@ class MysqlDatabase implements IDatabaseDrive
 
     public function __construct()
     {
-        DB_DEBUG ? $this->debug = true : null;
+        $_ENV['DB_DEBUG'] ? $this->debug = true : null;
     }
 
     public function GetFormattedSelectColumns(string $entity, string $column)
@@ -152,11 +151,22 @@ class MysqlDatabase implements IDatabaseDrive
     public function DBLink()
     {
         if (!isset($_SESSION['link'])) {
-            $_SESSION['link'] = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_DATABASE);
-            $_SESSION['link']->set_charset(DB_CHARSET);
+            $_SESSION['link'] = new mysqli($_ENV['DB_HOST'], $_ENV['DB_USER'], $_ENV['DB_PASS'], $_ENV['DB_DATABASE']);
+            $_SESSION['link']->set_charset($_ENV['DB_CHARSET']);
         }
 
         return $_SESSION['link'];
+    }
+
+    public function DBClose(bool $rollback = false)
+    {
+        if (isset($_SESSION['link'])) {
+            if ($rollback) {
+                \mysqli_rollback($_SESSION['link']);
+            }
+            \mysqli_close($_SESSION['link']);
+            unset($_SESSION['link']);
+        }
     }
 
     public function DBReport($query = null, $line = 3)

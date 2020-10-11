@@ -44,5 +44,7 @@ interface IDatabaseDrive
 
     public function DBLink();
 
+    public function DBClose(bool $rollback);
+
     public function DBReport($query = null, $line = 3);
 }

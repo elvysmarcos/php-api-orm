@@ -31,7 +31,7 @@ class Database
 
     public function __construct()
     {
-        if (DB_DRIVE == 'mysql') {
+        if ($_ENV['DB_DRIVE'] == 'mysql') {
             $this->drive = new MysqlDatabase();
         } else {
             $this->drive = new SqlDataBase();
@@ -733,5 +733,10 @@ class Database
         $this->drive->DBLink();
 
         return true;
+    }
+
+    public function CloseConnection(bool $rollback = false)
+    {
+        $this->drive->DBClose($rollback);
     }
 }

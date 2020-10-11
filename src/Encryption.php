@@ -14,14 +14,14 @@ class Encryption
         return json_decode(Encryption::Base64UrlDecode(strrev(Encryption::Base64UrlDecode($data))), true);
     }
 
-    static function Base64UrlEncode(string $data)
+    static function Base64UrlEncode(array $data): string
     {
         $urlSafeData = strtr(base64_encode($data), '+/', '-_');
 
         return rtrim($urlSafeData, '=');
     }
 
-    static function Base64UrlDecode(string $data)
+    static function Base64UrlDecode(string $data): array
     {
         $urlUnsafeData = strtr($data, '-_', '+/');
 

@@ -174,9 +174,7 @@ class SqlDataBase implements IDatabaseDrive
     public function DBLink()
     {
         if (!isset($_SESSION['link'])) {
-            $json = (object)json_decode($_ENV['CONNECTION_STRING'], true);
-
-            $_SESSION['link'] = sqlsrv_connect($json->host, array("Database" => $json->Database, "UID" => $json->UID, "PWD" => $json->PWD, "CharacterSet" => "UTF-8"));
+            $_SESSION['link'] = sqlsrv_connect($_ENV['DB_HOST'], array("Database" => $_ENV['DB_DATABASE'], "UID" => $_ENV['DB_USER'], "PWD" => $_ENV['DB_PASS'], "CharacterSet" => $_ENV['DB_CHARSET']));
 
             if ($_SESSION['link'] === false) {
                 unset($_SESSION['link']);
@@ -186,6 +184,17 @@ class SqlDataBase implements IDatabaseDrive
         }
 
         return $_SESSION['link'];
+    }
+
+    public function DBClose(bool $rollback = false)
+    {
+        if (isset($_SESSION['link'])) {
+            if ($rollback) {
+                \sqlsrv_rollback($_SESSION['link']);
+            }
+            \sqlsrv_close($_SESSION['link']);
+            unset($_SESSION['link']);
+        }
     }
 
     public function DBReport($query = null, $line = 3)

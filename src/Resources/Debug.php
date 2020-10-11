@@ -1,7 +1,7 @@
 <?php
 function debug($text, $dump = false, $line = 0)
 {
-    $fp = fopen(PATH_ROOT . '/Logs/DEBUG', "a+");
+    $fp = fopen($_ENV['PATH_ROOT'] . '/Logs/DEBUG', "a+");
 
     is_array($text) ? $dump = true : null;
 
@@ -20,7 +20,7 @@ function debug($text, $dump = false, $line = 0)
 
 function debugSql($text, $dump = false, $line = 2)
 {
-    $fp = fopen(PATH_ROOT . '/Logs/SQL', "a+");
+    $fp = fopen($_ENV['PATH_ROOT'] . '/Logs/SQL', "a+");
 
     is_array($text) ? $dump = true : null;
 

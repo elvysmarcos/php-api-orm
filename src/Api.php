@@ -8,11 +8,8 @@ class Api
 {
     function __construct()
     {
-        if (isset($_SESSION['link'])) {
-            \mysqli_rollback($_SESSION['link']);
-            \mysqli_close($_SESSION['link']);
-            unset($_SESSION['link']);
-        }
+        $database = new Database();
+        $database->CloseConnection(true);
 
         //<editor-fold desc=" [Headers] ">
         if (isset($_SERVER['HTTP_ORIGIN'])) {
@@ -40,21 +37,30 @@ class Api
         }
         //</editor-fold>
 
-        //<editor-fold desc=" [APP Settings] ">
-        define('TIME', time());
+        //<editor-fold desc=" [Load Env] ">
+        $_ENV = [];
 
-        define('IP', $_SERVER['REMOTE_ADDR']);
+        if (file_exists('.env')) {
+            $_ENV = parse_ini_file('.env');
 
-        if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') {
-            define('PROTOCOL', 'https');
-        } else {
-            define('PROTOCOL', 'http');
+            if (defined('ENVIRONMENT') && ENVIRONMENT === '#{environment}') {
+                $_ENV = array_merge($_ENV, parse_ini_file('.env.local'));
+            } else if (defined('ENVIRONMENT') && file_exists('.env.' + ENVIRONMENT)) {
+                $_ENV = array_merge($_ENV, parse_ini_file('.env.' + ENVIRONMENT));
+            }
         }
+        //</editor-fold>
 
-        define('HOST_APP', PROTOCOL . '://' . $_SERVER['HTTP_HOST'] . '/');
-        define('HOST', HOST_APP . APP_PATH);
-        define('PATH_ROOT', getEnv('DOCUMENT_ROOT') . '/' . APP_PATH);
-        define('METHOD', $_SERVER['REQUEST_METHOD']);
+        //<editor-fold desc=" [APP Settings] ">
+        date_default_timezone_set($_ENV['TIME_ZONE']);
+
+        $_ENV['TIME'] = time();
+
+        $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') ? 'https' : 'http';
+
+        $_ENV['HOST_APP'] = "{$protocol}://{$_SERVER['HTTP_HOST']}/";
+        $_ENV['HOST'] = "{$_ENV['HOST_APP']}.{$_ENV['APP_PATH']}";
+        $_ENV['PATH_ROOT'] = getEnv('DOCUMENT_ROOT') . "/{$_ENV['APP_PATH']}";
         //</editor-fold>
 
         //<editor-fold desc=" [ Resources ] ">
