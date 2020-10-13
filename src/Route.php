@@ -67,7 +67,7 @@ class Route
             $route = ltrim($route, '/');
             $route = rtrim($route, '/');
 
-            if($route){
+            if ($route) {
                 $routes = explode('/', $route);
             }
         }
@@ -203,6 +203,16 @@ class Route
                 } catch (\Exception $e) {
                     new ApiCustomException($e->getMessage());
                 }
+                break;
+            case 'array' :
+
+                if ($value === null || $value === '') {
+                    return [];
+                } else if (strpos($value, ',')) {
+                    return explode(',', $value);
+                }
+
+                return [$value];
 
                 break;
         }
