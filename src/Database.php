@@ -386,7 +386,9 @@ class Database
         if (count($this->conditions)) {
             foreach ($this->conditions as $key => $value) {
 
-                if (is_array($value['compare'])) {
+                if (is_array($value['compare']) && count($value['compare']) === 0) {
+                    continue;
+                } else if (is_array($value['compare'])) {
                     $value['compare'] = '(' . implode(',', $value['compare']) . ')';
                 }
 
