@@ -174,7 +174,7 @@ class SqlDataBase implements IDatabaseDrive
     public function DBLink()
     {
         if (!isset($_SESSION['link'])) {
-            $_SESSION['link'] = sqlsrv_connect($_ENV['DB_HOST'], array("Database" => $_ENV['DB_DATABASE'], "UID" => $_ENV['DB_USER'], "PWD" => $_ENV['DB_PASS'], "CharacterSet" => $_ENV['DB_CHARSET']));
+            $_SESSION['link'] = sqlsrv_connect($_ENV['DB_HOST'], array("Database" => $_ENV['DB_DATABASE'], "UID" => $_ENV['DB_USER'], "PWD" => base64_decode($_ENV['DB_PASS']), "CharacterSet" => $_ENV['DB_CHARSET']));
 
             if ($_SESSION['link'] === false) {
                 unset($_SESSION['link']);

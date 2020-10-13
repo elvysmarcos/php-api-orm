@@ -151,7 +151,7 @@ class MysqlDatabase implements IDatabaseDrive
     public function DBLink()
     {
         if (!isset($_SESSION['link'])) {
-            $_SESSION['link'] = new mysqli($_ENV['DB_HOST'], $_ENV['DB_USER'], $_ENV['DB_PASS'], $_ENV['DB_DATABASE']);
+            $_SESSION['link'] = new mysqli($_ENV['DB_HOST'], $_ENV['DB_USER'], base64_decode($_ENV['DB_PASS']), $_ENV['DB_DATABASE']);
             $_SESSION['link']->set_charset($_ENV['DB_CHARSET']);
         }
 
