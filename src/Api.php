@@ -8,9 +8,6 @@ class Api
 {
     function __construct()
     {
-        $database = new Database();
-        $database->CloseConnection(true);
-
         //<editor-fold desc=" [Headers] ">
         if (isset($_SERVER['HTTP_ORIGIN'])) {
 
@@ -49,6 +46,11 @@ class Api
                 $_ENV = array_merge($_ENV, parse_ini_file('.env.' + ENVIRONMENT));
             }
         }
+        //</editor-fold>
+
+        //<editor-fold desc=" [Clean last connection] ">
+        $database = new Database();
+        $database->CloseConnection(true);
         //</editor-fold>
 
         //<editor-fold desc=" [APP Settings] ">
