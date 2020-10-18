@@ -40,7 +40,7 @@ class Api
         if (file_exists('.env')) {
             $_ENV = parse_ini_file('.env');
 
-            if (defined('ENVIRONMENT') && ENVIRONMENT === '#{environment}') {
+            if (defined('ENVIRONMENT') && ENVIRONMENT === '_environment_') {
                 $_ENV = array_merge($_ENV, parse_ini_file('.env.local'));
             } else if (defined('ENVIRONMENT') && file_exists('.env.' + ENVIRONMENT)) {
                 $_ENV = array_merge($_ENV, parse_ini_file('.env.' + ENVIRONMENT));
