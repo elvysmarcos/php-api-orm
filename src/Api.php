@@ -40,10 +40,10 @@ class Api
         if (file_exists('.env')) {
             $_ENV = parse_ini_file('.env');
 
-            if (defined('ENVIRONMENT') && ENVIRONMENT === '_ENVIRONMENT_') {
+            if (isset($_ENV['ENVIRONMENT']) && $_ENV['ENVIRONMENT'] === '#{ENVIRONMENT}#') {
                 $_ENV = array_merge($_ENV, parse_ini_file('.env.local'));
-            } else if (defined('ENVIRONMENT') && file_exists('.env.' + ENVIRONMENT)) {
-                $_ENV = array_merge($_ENV, parse_ini_file('.env.' + ENVIRONMENT));
+            } else if (isset($_ENV['ENVIRONMENT']) && file_exists(".env.{$_ENV['ENVIRONMENT']}")) {
+                $_ENV = array_merge($_ENV, parse_ini_file(".env.{$_ENV['ENVIRONMENT']}"));
             }
         }
         //</editor-fold>
