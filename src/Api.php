@@ -62,7 +62,7 @@ class Api
 
         $_ENV['HOST_APP'] = "{$protocol}://{$_SERVER['HTTP_HOST']}/";
         $_ENV['HOST'] = "{$_ENV['HOST_APP']}.{$_ENV['APP_PATH']}";
-        $_ENV['PATH_ROOT'] = getEnv('DOCUMENT_ROOT') . "/{$_ENV['APP_PATH']}";
+        $_ENV['PATH_ROOT'] = getEnv('DOCUMENT_ROOT') . "{$_ENV['APP_PATH']}";
         //</editor-fold>
 
         //<editor-fold desc=" [ Resources ] ">
