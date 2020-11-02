@@ -137,9 +137,9 @@ class Entity implements IEntity
     function Insert()
     {
         $db = new Database();
-        $result = $db->Insert($this);
+        $result = $db->Insert(clone($this));
 
-        foreach (clone($this) as $key => $value) {
+        foreach ($result as $key => $value) {
             $this->$key = $result->$key;
         }
     }
@@ -147,10 +147,10 @@ class Entity implements IEntity
     function Update()
     {
         $db = new Database();
-        $db->Update($this);
+        $db->Update(clone($this));
         $result = $db->SaveChanges();
 
-        foreach (clone($this) as $key => $value) {
+        foreach ($result as $key => $value) {
             $this->$key = $result->$key;
         }
     }
