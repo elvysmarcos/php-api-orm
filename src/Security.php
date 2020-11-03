@@ -110,7 +110,7 @@ class Security
                 )
             );
 
-            if ($this->signature = $signature) {
+            if ($this->signature == $signature) {
                 return true;
             }
         }
@@ -122,14 +122,16 @@ class Security
     {
         $session->Destroy();
 
-        $secret = $session->GetSecret($this->device);
+        if ($this->device) {
+            $secret = $session->GetSecret($this->device);
 
-        $signature = $this->CheckSignature($secret);
+            $signature = $this->CheckSignature($secret);
 
-        if ($signature) {
-            $date = $session->Update($this->device);
-            $this->iat = $date->getTimestamp();
-            return true;
+            if ($signature) {
+                $date = $session->Update($this->device);
+                $this->iat = $date->getTimestamp();
+                return true;
+            }
         }
 
         Response::Show(TypeResponseEnum::Unauthorized, $session->GetUnauthorizedText());
