@@ -122,6 +122,14 @@ class SqlDataBase implements IDatabaseDrive
         return " [{$entity}].[{$column}] " . strtoupper($direction);
     }
 
+    public function GetFormattedLogQuery(string $table, int $typeOperation, ?int $author, int $type, ?string $reference, string $data)
+    {
+        $reference = $reference ? "'{$reference}'" : 'NULL';
+        $author = $author ? "{$author}" : 'NULL';
+
+        return "INSERT INTO `{$table}` (`date`,`typeOperation`,`author`,`type`,`reference`,`data`) VALUES (GETDATE(),{$typeOperation},{$author},{$type},{$reference},'{$data}')";
+    }
+
     public function Execute($query)
     {
         return sqlsrv_query($this->DBLink(), $query);

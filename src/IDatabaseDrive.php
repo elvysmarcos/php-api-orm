@@ -32,6 +32,8 @@ interface IDatabaseDrive
 
     public function GetFormattedOrders(string $entity, string $column, string $direction);
 
+    public function GetFormattedLogQuery(string $table, int $typeOperation, ?int $author, int $type, ?string $reference, string $data);
+
     public function Execute($query);
 
     public function GetNumRows($result);

@@ -122,6 +122,14 @@ class MysqlDatabase implements IDatabaseDrive
         return " `{$entity}`.`{$column}` " . strtoupper($direction);
     }
 
+    public function GetFormattedLogQuery(string $table, int $typeOperation, ?int $author, int $type, ?string $reference, string $data)
+    {
+        $reference = $reference ? "'{$reference}'" : 'NULL';
+        $author = $author ? "{$author}" : 'NULL';
+
+        return "INSERT INTO `{$table}` (`date`,`typeOperation`,`author`,`type`,`reference`,`data`) VALUES (NOW(),{$typeOperation},{$author},{$type},{$reference},'{$data}')";
+    }
+
     public function Execute($query)
     {
         return mysqli_query($this->DBLink(), $query);

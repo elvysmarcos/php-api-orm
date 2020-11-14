@@ -2,6 +2,7 @@
 
 namespace APIORM;
 
+use APIORM\Enums\TypeDBOperationEnum;
 use APIORM\Enums\TypeResponseEnum;
 use APIORM\Resources\Content;
 
@@ -26,6 +27,7 @@ class Database
     );
     private $saveChanges;
     private $saveChangesEntity = null;
+    private ILogConfig $log;
 
     //</editor-fold>
 
@@ -38,6 +40,12 @@ class Database
         }
 
         $this->debug = $this->drive->debug;
+
+        if (isset($_ENV['DB_LOG'])
+            && $_ENV['DB_LOG']
+        ) {
+            $this->log = new $_ENV['DB_LOG'];
+        }
     }
 
     private function Reset()
@@ -314,7 +322,7 @@ class Database
     {
         $query = null;
 
-        if (!count($this->conditions) && defined("$entityName::_id")) {
+        if (!count($this->conditions) && defined("{$entityName}::_id")) {
             foreach ($entityName::_id as $key => $autoIncrement) {
                 if (key_exists($key, $properties)) {
 
@@ -345,8 +353,7 @@ class Database
     {
         $rowsUp = $this->GetParametersConditionsUp($part, $file, $line);
         $rowsDow = $this->GetParametersConditionsDown($file, $line + 1, $rowsUp);
-        $fix = trim(str_replace("\r\n ", '', $rowsDow), ' ');
-        return $fix;
+        return trim(str_replace("\r\n ", '', $rowsDow), ' ');
     }
 
     private function GetParametersConditionsUp($part, $file, $line, $src = null)
@@ -464,7 +471,7 @@ class Database
         if (count($properties)) {
             foreach ($properties as $key => $value) {
 
-                if (defined("$entityName::_id") && key_exists($key, $entityName::_id) && $entityName::_id[$key]) {
+                if (defined("{$entityName}::_id") && key_exists($key, $entityName::_id) && $entityName::_id[$key]) {
                     continue;
                 }
 
@@ -494,7 +501,9 @@ class Database
 
         if ($execute) {
 
-            if (defined("$entityName::_id")) {
+            $this->Log($entity);
+
+            if (defined("{$entityName}::_id")) {
 
                 $recentId = $this->drive->GetRecentId();
 
@@ -633,7 +642,7 @@ class Database
 
         foreach ($properties as $key => $value) {
 
-            if (defined("$entityName::_id") && key_exists($key, $entityName::_id)) {
+            if (defined("{$entityName}::_id") && key_exists($key, $entityName::_id)) {
                 continue;
             } else {
                 $fields[] = $this->drive->GetFormattedUpdateColumns($key, $value);
@@ -664,7 +673,9 @@ class Database
 
         if ($execute) {
 
-            if (defined("$entityName::_id")) {
+            $this->Log($entity);
+
+            if (defined("{$entityName}::_id")) {
 
                 $DB = new Database();
                 $DB->Select($e = new $entityName);
@@ -708,6 +719,13 @@ class Database
             new ApiCustomException('Não parametros para continurar com a alteração = Update');
         }
 
+        $items = null;
+
+        if ($this->log) {
+            $queryList = "SELECT * FROM " . $entityName::_table . " {$this->drive->GetFormattedConditionStart()} {$query}";
+            $items = $this->drive->Execute($queryList) or die($this->drive->DBReport($queryList));
+        }
+
         $query = "DELETE FROM " . $entityName::_table . " {$this->drive->GetFormattedConditionStart()} {$query}";
 
         if ($this->debug) {
@@ -716,9 +734,85 @@ class Database
 
         $execute = $this->drive->Execute($query) or die($this->drive->DBReport($query));
 
+        if ($items !== null && $execute && $this->drive->GetNumRows($items)) {
+            while ($res = $this->drive->FetchArray($items)) {
+                $entity->ImportData($res);
+                $this->Log($entity);
+            }
+        }
+
         $this->Reset();
 
         return $execute ? true : false;
+    }
+
+    private function Log(IEntity $entity)
+    {
+        if ($this->log) {
+            $entityName = get_class($entity);
+            $fullClass = str_replace('\\', '_', $entityName);
+
+            $config = $this->log->GetTypeLog($fullClass);
+
+            $typeOperation = TypeDBOperationEnum::Insert;
+            $func = debug_backtrace()[1]['function'];
+
+            if ($func === 'AuxUpdate') {
+                $typeOperation = TypeDBOperationEnum::Update;
+            } else if ($func === 'AuxDelete') {
+                $typeOperation = TypeDBOperationEnum::Delete;
+            }
+
+            if (is_array($config)
+                && key_exists('type', $config)
+                && key_exists('filter', $config)
+                && key_exists($typeOperation, $config['filter'])
+            ) {
+                $type = $config['type'];
+
+                $reference = [];
+
+                if (defined("{$entityName}::_id")) {
+                    foreach ($entityName::_id as $key => $autoIncrement) {
+                        $reference[] = $entity->$key;
+                    }
+                }
+
+                $references = count($reference);
+
+                if ($references == 1) {
+                    $reference = $reference[0];
+                } else if ($references > 1) {
+                    $reference = implode(',', $reference);
+                } else {
+                    $reference = null;
+                }
+
+                $table = $this->log->GetTableName();
+
+                $author = null;
+
+                if ($config['filter'][$typeOperation]) {
+                    $author = $this->log->GetAuthor();
+                }
+
+                $data = json_encode($entity);
+
+                $query = $this->drive->GetFormattedLogQuery(
+                    $table,
+                    $typeOperation,
+                    $author,
+                    $type,
+                    $reference,
+                    $data);
+
+                if ($this->debug) {
+                    debugSql($query);
+                }
+
+                $this->drive->Execute($query) or die($this->drive->DBReport($query));
+            }
+        }
     }
 
     public function Query($query)
