@@ -500,9 +500,6 @@ class Database
         $execute = $this->drive->Execute($query) or die($this->drive->DBReport($query));
 
         if ($execute) {
-
-            $this->Log($entity);
-
             if (defined("{$entityName}::_id")) {
 
                 $recentId = $this->drive->GetRecentId();
@@ -523,6 +520,8 @@ class Database
             } else {
                 $result = $entity;
             }
+
+            $this->Log($result);
         }
 
         $this->Reset();
@@ -672,9 +671,6 @@ class Database
         $execute = $this->drive->Execute($query) or die($this->drive->DBReport($query));
 
         if ($execute) {
-
-            $this->Log($entity);
-
             if (defined("{$entityName}::_id")) {
 
                 $DB = new Database();
@@ -697,6 +693,8 @@ class Database
             } else {
                 $result = $entity;
             }
+
+            $this->Log($result);
         }
 
         $this->Reset();
@@ -793,7 +791,7 @@ class Database
                 $author = null;
 
                 if ($config['filter'][$typeOperation]) {
-                    $author = $this->log->GetAuthor();
+                    $author = $this->log->GetAuthor($fullClass);
                 }
 
                 $data = json_encode($entity);

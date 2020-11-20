@@ -197,6 +197,9 @@ class Route
         }
 
         switch ($argType) {
+            case 'string' :
+                return $value;
+                break;
             case 'DateTime':
                 try {
                     return new \DateTime($value);
@@ -213,7 +216,6 @@ class Route
                 }
 
                 return [$value];
-
                 break;
         }
 
@@ -257,7 +259,7 @@ class Route
             if ($very && count($this->route) === count($verifiedRoutes) && count($args) === count($argsResult)) {
 
                 if (gettype($auth) === 'object') {
-                    $Security = new Security();
+                    $Security = new Security($auth::GetPathAuthorization());
                     $Security->AuthenticatedRegion($auth);
                 }
 

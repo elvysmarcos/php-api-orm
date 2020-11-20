@@ -6,6 +6,8 @@ namespace APIORM;
 
 interface ISession
 {
+    static function GetPathAuthorization(): ?string;
+
     static function GetPerson(): ?int;
 
     static function GetApp(): ?int;

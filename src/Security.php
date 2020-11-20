@@ -12,15 +12,15 @@ class Security
     private $token;
     private $iat;
     private $header = [];
-    private $payload = [];
+    public $payload = [];
     private $signature;
 
-    public function __construct()
+    public function __construct(string $path = 'Authorization')
     {
         $headers = apache_request_headers();
 
-        if (isset($headers['Authorization']) and $headers['Authorization']) {
-            $this->token = $headers['Authorization'];
+        if (isset($headers[$path]) and $headers[$path]) {
+            $this->token = $headers[$path];
             $this->ExtractDataToken();
         }
     }
