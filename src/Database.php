@@ -27,7 +27,7 @@ class Database
     );
     private $saveChanges;
     private $saveChangesEntity = null;
-    private ILogConfig $log;
+    private ?ILogConfig $log = null;
 
     //</editor-fold>
 
@@ -42,7 +42,7 @@ class Database
         $this->debug = $this->drive->debug;
 
         if (isset($_ENV['DB_LOG'])
-            && $_ENV['DB_LOG']
+            && $_ENV['DB_LOG'] && class_exists($_ENV['DB_LOG'])
         ) {
             $this->log = new $_ENV['DB_LOG'];
         }
