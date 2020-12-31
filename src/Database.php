@@ -446,7 +446,12 @@ class Database
             } else {
 
                 if (key_exists("{$entity}.{$key}", $result)) {
+
                     $propriety->$key = Content::Fix($result["{$entity}.{$key}"]);
+
+                     if (method_exists($propriety, $key)) {
+                        $propriety->$key = $propriety::$key($propriety->$key);
+                    }
 
                     unset($result["{$entity}.{$key}"]);
 
