@@ -768,8 +768,8 @@ class Database
 
             if (is_array($config)
                 && key_exists('type', $config)
-                && key_exists('filter', $config)
-                && key_exists($typeOperation, $config['filter'])
+                && key_exists('filterAuthor', $config)
+                && key_exists($typeOperation, $config['filterAuthor'])
             ) {
                 $type = $config['type'];
 
@@ -795,7 +795,7 @@ class Database
 
                 $author = null;
 
-                if ($config['filter'][$typeOperation]) {
+                if ($config['filterAuthor'][$typeOperation]) {
                     $author = $this->log->GetAuthor($fullClass);
                 }
 
