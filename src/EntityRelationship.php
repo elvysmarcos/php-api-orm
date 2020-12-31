@@ -9,13 +9,13 @@ class EntityRelationship
     public $to;
     public $from;
     public $of;
-    public $requerid;
+    public $required;
 
-    public  function __construct(string $from, string $of , string $to, bool $requerid = true)
+    public  function __construct(string $from, string $of , string $to, bool $required = true)
     {
         $this->from = $from;
         $this->of = $of;
         $this->to = $to;
-        $this->requerid = $requerid;
+        $this->required = $required;
     }
 }
