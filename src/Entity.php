@@ -27,8 +27,8 @@ class Entity implements IEntity
 
             if ($exist && $type === 'object' && $extractFK) {
                 $settings = $this::$key();
-                $of = $settings['of'];
-                $to = $settings['to'];
+                $of = $settings->of;
+                $to = $settings->to;
 
                 unset($this->$key);
 

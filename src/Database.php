@@ -426,9 +426,9 @@ class Database
             foreach ($property as $key => $value) {
                 if (gettype($value) === 'object') {
                     $setting = $entity::$key();
-                    $this->JoinAux("{$path}_{$key}", $setting['of'], $setting['to'], $path, $setting['required']);
+                    $this->JoinAux("{$path}_{$key}", $setting->of, $setting->to, $path, $setting->required);
 
-                    $this->GetEntities($setting['class'], "{$path}_{$key}", (array)$value);
+                    $this->GetEntities($setting->from, "{$path}_{$key}", (array)$value);
                 } else {
                     $this->entities[$path][$key] = null;
                 }
