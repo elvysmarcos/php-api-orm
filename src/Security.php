@@ -2,7 +2,7 @@
 
 namespace APIORM;
 
-use APIORM\Enums\TypeResponseEnum;
+use APIORM\Enums\ResponseTypeEnum;
 use DateTime;
 
 class Security
@@ -134,6 +134,6 @@ class Security
             }
         }
 
-        Response::Show(TypeResponseEnum::Unauthorized, $session->GetUnauthorizedText());
+        Response::Show(ResponseTypeEnum::Unauthorized, $session->GetUnauthorizedText());
     }
 }

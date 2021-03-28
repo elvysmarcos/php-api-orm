@@ -2,8 +2,8 @@
 
 namespace APIORM;
 
-use APIORM\Enums\TypeDBOperationEnum;
-use APIORM\Enums\TypeResponseEnum;
+use APIORM\Enums\DBOperationTypeEnum;
+use APIORM\Enums\ResponseTypeEnum;
 use APIORM\Resources\Content;
 
 class Database
@@ -579,7 +579,7 @@ class Database
             $subClass = $var[0];
             $nameClassMap = get_class($this->saveChangesEntity);
             $settings = $nameClassMap::$subClass();
-            $column = $settings['to'];
+            $column = $settings->to;
         } else if ($entity !== null && count($var)) {
             $entity .= '_' . implode('_', $var);
         }
@@ -631,7 +631,7 @@ class Database
         } else if ($this->saveChanges === 'delete') {
             return $this->AuxDelete($this->saveChangesEntity);
         } else {
-            Response::Show(TypeResponseEnum::BadRequest, 'Argumentos incompletos para está ação');
+            Response::Show(ResponseTypeEnum::BadRequest, 'Argumentos incompletos para está ação');
             return false;
         }
     }
@@ -757,13 +757,13 @@ class Database
 
             $config = $this->log->GetTypeLog($fullClass);
 
-            $typeOperation = TypeDBOperationEnum::Insert;
+            $typeOperation = DBOperationTypeEnum::Insert;
             $func = debug_backtrace()[1]['function'];
 
             if ($func === 'AuxUpdate') {
-                $typeOperation = TypeDBOperationEnum::Update;
+                $typeOperation = DBOperationTypeEnum::Update;
             } else if ($func === 'AuxDelete') {
-                $typeOperation = TypeDBOperationEnum::Delete;
+                $typeOperation = DBOperationTypeEnum::Delete;
             }
 
             if (is_array($config)

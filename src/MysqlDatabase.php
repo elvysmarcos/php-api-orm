@@ -40,7 +40,7 @@ class MysqlDatabase implements IDatabaseDrive
         } else if ($value === null) {
             $fields = "`{$column}` = NULL";
         } else {
-            $fields = "`{$column}` = '{$value}'";
+            $fields = "`{$column}` = '" . addslashes($value) . "'";
         }
 
         return $fields;

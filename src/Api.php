@@ -2,7 +2,7 @@
 
 namespace APIORM;
 
-use APIORM\Enums\TypeResponseEnum;
+use APIORM\Enums\ResponseTypeEnum;
 
 class Api
 {
@@ -72,6 +72,6 @@ class Api
         $Route = new Route();
         $Route->Controller();
 
-        Response::Show(TypeResponseEnum::NotImplemented);
+        Response::Show(ResponseTypeEnum::NotImplemented);
     }
 }

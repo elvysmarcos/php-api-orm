@@ -3,7 +3,7 @@
 
 namespace APIORM;
 
-use APIORM\Enums\TypeResponseEnum;
+use APIORM\Enums\ResponseTypeEnum;
 
 class SqlDataBase implements IDatabaseDrive
 {
@@ -40,7 +40,7 @@ class SqlDataBase implements IDatabaseDrive
         } else if ($value === null) {
             $fields = "[{$column}] = NULL";
         } else {
-            $fields = "[{$column}] = '{$value}'";
+            $fields = "[{$column}] = '" . addslashes($value) . "'";
         }
 
         return $fields;
@@ -187,7 +187,7 @@ class SqlDataBase implements IDatabaseDrive
             if ($_SESSION['link'] === false) {
                 unset($_SESSION['link']);
                 $error = sqlsrv_errors();
-                Response::Show(TypeResponseEnum::BadRequest, $error[0]['message']);
+                Response::Show(ResponseTypeEnum::BadRequest, $error[0]['message']);
             }
         }
 
@@ -214,7 +214,7 @@ class SqlDataBase implements IDatabaseDrive
 
         sqlsrv_rollback($_SESSION['link']);
 
-        Response::Show(TypeResponseEnum::BadRequest, $error[0]['message']);
+        Response::Show(ResponseTypeEnum::BadRequest, $error[0]['message']);
         return null;
     }
 }

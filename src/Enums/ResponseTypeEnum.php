@@ -2,7 +2,7 @@
 
 namespace APIORM\Enums;
 
-abstract class TypeResponseEnum
+abstract class ResponseTypeEnum
 {
     const Success = 200;
     const Created = 201;

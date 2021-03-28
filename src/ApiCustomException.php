@@ -2,7 +2,7 @@
 
 namespace APIORM;
 
-use APIORM\Enums\TypeResponseEnum;
+use APIORM\Enums\ResponseTypeEnum;
 use Exception;
 use Throwable;
 
@@ -16,6 +16,6 @@ class ApiCustomException extends Exception
             mysqli_rollback($_SESSION['link']);
         }
 
-        Response::Show(TypeResponseEnum::BadRequest, $message);
+        Response::Show(ResponseTypeEnum::BadRequest, $message);
     }
 }

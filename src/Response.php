@@ -2,11 +2,11 @@
 
 namespace APIORM;
 
-use APIORM\Enums\TypeResponseEnum;
+use APIORM\Enums\ResponseTypeEnum;
 
 class Response
 {
-    static function Show(int $code = TypeResponseEnum::Success, $response = null)
+    static function Show(int $code = ResponseTypeEnum::Success, $response = null)
     {
         header("content-type: application/json; charset=utf-8");
 
@@ -21,7 +21,7 @@ class Response
         exit;
     }
 
-    static function Download(int $code = TypeResponseEnum::Success, $response = null)
+    static function Download(int $code = ResponseTypeEnum::Success, $response = null)
     {
         http_response_code($code);
 
@@ -39,7 +39,7 @@ class Response
         $database = new Database();
 
         $rollback = false;
-        if (in_array($code, [TypeResponseEnum::Exception, TypeResponseEnum::BadRequest])) {
+        if (in_array($code, [ResponseTypeEnum::Exception, ResponseTypeEnum::BadRequest])) {
             $rollback = true;
         }
         $database->CloseConnection($rollback);

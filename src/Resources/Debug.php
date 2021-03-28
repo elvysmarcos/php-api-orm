@@ -22,7 +22,7 @@ function debug($text, $dump = false, $line = 0)
 
 function debugSql($text, $dump = false, $line = 2)
 {
-    if ($_ENV['ENVIRONMENT'] == '#{ENVIRONMENT}#') {
+    if ($_ENV['ENVIRONMENT'] == 'local') {
         $fp = fopen($_ENV['PATH_ROOT'] . 'Logs/SQL', "a+");
 
         is_array($text) ? $dump = true : null;

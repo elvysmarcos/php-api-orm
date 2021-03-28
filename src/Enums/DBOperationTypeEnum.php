@@ -2,7 +2,7 @@
 
 namespace APIORM\Enums;
 
-abstract class TypeDBOperationEnum
+abstract class DBOperationTypeEnum
 {
     const Insert = 1;
     const Update = 2;
