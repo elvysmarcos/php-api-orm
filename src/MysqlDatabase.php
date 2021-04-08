@@ -33,9 +33,11 @@ class MysqlDatabase implements IDatabaseDrive
     {
         $fields = null;
 
-        if (gettype($value) === 'integer' || gettype($value) === 'double') {
+        $valueType = gettype($value);
+
+        if ($valueType === 'integer' || $valueType === 'double') {
             $fields = "`{$column}` = {$value}";
-        } else if (gettype($value) === 'boolean') {
+        } else if ($valueType === 'boolean') {
             $fields = "`{$column}` = " . +$value;
         } else if ($value === null) {
             $fields = "`{$column}` = NULL";
@@ -152,7 +154,7 @@ class MysqlDatabase implements IDatabaseDrive
 
     public function CustomQuery($query)
     {
-        new ApiCustomException('Method is not valid');
+        throw new ApiCustomException('Method is not valid');
         return null;
     }
 
@@ -180,10 +182,7 @@ class MysqlDatabase implements IDatabaseDrive
     public function DBReport($query = null, $line = 3)
     {
         debugSql(str_replace('', '\"', "\rError: " . mysqli_error($this->DBLink()) . "\rQuery: {$query}"), null, $line);
-        $error = mysqli_error($this->DBLink());
 
-        !$error ? $error = 'Unrecognized error' : null;
-
-        new ApiCustomException($error);
+        throw new ApiCustomException('Something didn\'t happen as expected');
     }
 }

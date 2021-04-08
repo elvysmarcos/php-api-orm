@@ -3,8 +3,6 @@
 
 namespace APIORM;
 
-use APIORM\Enums\ResponseTypeEnum;
-
 class SqlDataBase implements IDatabaseDrive
 {
     public $debug = false;
@@ -33,9 +31,11 @@ class SqlDataBase implements IDatabaseDrive
     {
         $fields = null;
 
-        if (gettype($value) === 'integer' || gettype($value) === 'double') {
+        $valueType = gettype($value);
+
+        if ($valueType === 'integer' || $valueType === 'double') {
             $fields = "[{$column}] = {$value}";
-        } else if (gettype($value) === 'boolean') {
+        } else if ($valueType === 'boolean') {
             $fields = "[{$column}] = " . +$value;
         } else if ($value === null) {
             $fields = "[{$column}] = NULL";
@@ -142,7 +142,7 @@ class SqlDataBase implements IDatabaseDrive
 
     public function GetRecentId()
     {
-        $lastQuery = sqlsrv_query($this->DBLink(), "SELECT SCOPE_IDENTITY() as Id");
+        $lastQuery = sqlsrv_query($this->DBLink(), 'SELECT SCOPE_IDENTITY() as Id');
         $recent = sqlsrv_fetch_array($lastQuery, SQLSRV_FETCH_ASSOC);
         return ($recent && isset($recent['Id'])) ? $recent['Id'] : null;
     }
@@ -186,8 +186,12 @@ class SqlDataBase implements IDatabaseDrive
 
             if ($_SESSION['link'] === false) {
                 unset($_SESSION['link']);
+
                 $error = sqlsrv_errors();
-                Response::Show(ResponseTypeEnum::BadRequest, $error[0]['message']);
+
+                debugSql($error[0]['message']);
+
+                throw new ApiCustomException('Something didn\'t happen as expected');
             }
         }
 
@@ -212,9 +216,6 @@ class SqlDataBase implements IDatabaseDrive
         debugSql(str_replace('', '\"', "\rError: " . $error[0]['message'] . "\rQuery: {
                         $query}"), null, $line);
 
-        sqlsrv_rollback($_SESSION['link']);
-
-        Response::Show(ResponseTypeEnum::BadRequest, $error[0]['message']);
-        return null;
+        throw new ApiCustomException('Something didn\'t happen as expected');
     }
 }

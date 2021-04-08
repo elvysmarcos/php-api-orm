@@ -5,6 +5,7 @@ namespace APIORM;
 use APIORM\Enums\DBOperationTypeEnum;
 use APIORM\Enums\ResponseTypeEnum;
 use APIORM\Resources\Content;
+use APIORM\Resources\ExtractFunctionArgs;
 
 class Database
 {
@@ -12,10 +13,12 @@ class Database
     private IDatabaseDrive $drive;
     public $debug = false;
     public $limit = null;
+    private $resultModel = null;
     private $defaultTable = null;
-    private $entities = array();
     private $maps = array();
     private $vars = array();
+    private $varsContent = array();
+    private $colums = array();
     private $joins = array();
     private $conditions = array();
     private $orderBy = array();
@@ -48,32 +51,125 @@ class Database
         }
     }
 
-    private function Reset()
+    public function Insert(IEntity $entity)
     {
-        $this->defaultTable = null;
-        $this->entities = array();
-        $this->maps = array();
-        $this->vars = array();
-        $this->joins = array();
-        $this->conditions = array();
-        $this->orderBy = array();
-        $this->response = array(
-            'current' => 0,
-            'limit' => false,
-            'total' => 0,
-            'items' => array()
-        );
-        $this->limit = null;
-        $this->saveChanges = null;
-        $this->saveChangesEntity = null;
+        $entity->ImportData(null, true);
+
+        $entityName = get_class($entity);
+        $properties = (array)$entity;
+
+        $fields = [];
+        $values = null;
+
+        if (count($properties)) {
+            foreach ($properties as $key => $value) {
+
+                if (defined("{$entityName}::_id") && key_exists($key, $entityName::_id) && $entityName::_id[$key]) {
+                    continue;
+                }
+
+                $fields[] = $this->drive->GetFormattedInsertColumns($key);
+
+                $typeValue = gettype($value);
+
+                if ($typeValue === 'integer' || $typeValue === 'double') {
+                    $values .= $values === null ? $value : ",{$value}";
+                } else if ($typeValue === 'boolean') {
+                    $values .= $values === null ? $value : ',' . +$value;
+                } else if ($value === null) {
+                    $values .= $values === null ? $value : ', NULL';
+                } else {
+                    $values .= $values === null ? "'{$value}'" : ",'{$value}'";
+                }
+            }
+        }
+
+        $query = "INSERT INTO " . $entity::_table . " (" . implode(',', $fields) . ") VALUES({$values}); ";
+
+        if ($this->debug) {
+            debugSql($query, 2);
+        }
+
+        $result = null;
+
+        $execute = $this->drive->Execute($query) or die($this->drive->DBReport($query));
+
+        if ($execute) {
+            if (defined("{$entityName}::_id")) {
+
+                $recentId = $this->drive->GetRecentId();
+
+                $DB = new Database();
+                $DB->Select($e = new $entityName);
+
+                foreach ($entityName::_id as $key => $autoIncrement) {
+                    if ($autoIncrement && $recentId) {
+                        $DB->Where($key, '=', $recentId, null, '$e');
+                    } else if (key_exists($key, $properties)) {
+                        $DB->Where($key, '=', $properties[$key], null, '$e');
+                    }
+                }
+
+                $result = $DB->First();
+
+            } else {
+                $result = $entity;
+            }
+
+            $this->Log($result);
+        }
+
+        $this->Reset();
+
+        return $result;
     }
 
-    public function Join($entity, $of, $to, $required = true)
+    public function Update(IEntity $entity)
     {
-        $params = $this->GetParametersConditions(__FUNCTION__);
+        $this->saveChanges = 'update';
+        $this->saveChangesEntity = $entity;
+    }
+
+    public function Select(IEntity $entity = null)
+    {
+        $entityClass = get_class($entity);
+
+        $this->defaultTable = $path = str_replace('\\', '_', $entityClass);
+
+        $param = ExtractFunctionArgs::Get();
+
+        $var = explode('=', $param);
+        $var = trim($var[0]);
+
+        $this->vars[$var] = $path;
+
+        $this->GetEntities($entityClass, $path, (array)$entity);
+    }
+
+    public function Where($defaultColumn, string $condition, $compare = null, string $agroup = null, string $defaultEntityVar = null)
+    {
+        $param = ExtractFunctionArgs::Get();
+        $this->AddConditions($param, $defaultColumn, $condition, $compare, 'AND', $agroup, $defaultEntityVar);
+    }
+
+    public function And($defaultColumn, string $condition, $compare = null, string $agroup = null, string $defaultEntityVar = null)
+    {
+        $param = ExtractFunctionArgs::Get();
+        $this->AddConditions($param, $defaultColumn, $condition, $compare, 'AND', $agroup, $defaultEntityVar);
+    }
+
+    public function Or($defaultColumn, string $condition, $compare = null, string $agroup = null, string $defaultEntityVar = null)
+    {
+        $param = ExtractFunctionArgs::Get();
+        $this->AddConditions($param, $defaultColumn, $condition, $compare, 'OR', $agroup, $defaultEntityVar);
+    }
+
+    public function Join(IEntity $entity, $of, $to, $required = true)
+    {
+        $params = ExtractFunctionArgs::Get();
         $params = explode(',', $params);
 
-        $entityVar = explode(' = ', $params[0]);
+        $entityVar = explode('=', $params[0]);
         $entityVar = trim($entityVar[0]);
         $entityClass = get_class($entity);
 
@@ -101,16 +197,45 @@ class Database
         $this->JoinAux($entityOf, $columnOf, $columnTo, $entityTo, $required);
     }
 
-    private function JoinAux($joinPath, $of, $to = null, $toJoinPath = null, $required = true)
+    public function Columns(array $columns)
     {
-        $type = $required ? null : 'LEFT ';
+        $columnsTipe = gettype($columns);
 
-        $this->joins[$joinPath] = array('of' => $of, 'to' => $to, 'type' => $type, 'toEntity' => $toJoinPath);
+        $args = ExtractFunctionArgs::Get();
+
+        $args = str_replace('\'', '"', $args);
+        $args = str_replace('=>', '":"', $args);
+        $args = str_replace('""', '"', $args);
+        $args = str_replace('[', '{"', $args);
+        $args = str_replace(']', '"}', $args);
+        $args = str_replace('{"', '{">>x<<":"', $args);
+        $args = str_replace(',', '",">>x<<":"', $args);
+        $args = str_replace('">>x<<":""', '"', "{$args}\"");
+        $args = str_replace('}"', '}', $args);
+        $args = str_replace('"{', '{', $args);
+
+        $keys = explode('":', $args);
+        $keysNumber = count($keys);
+
+        if ($keysNumber) {
+            for ($i = 0; $i < $keysNumber; $i++) {
+                $keys[$i] = str_replace('>>x<<', $i, $keys[$i]);
+            }
+        }
+
+        $args = implode('":', $keys);
+        $args = json_decode($args, true);
+
+        if (!is_array($args)) {
+            new ApiCustomException('Something didn\'t happen as expected');
+        }
+
+        $this->resultModel = $this->NormalizeColumnsResult($args);
     }
 
     public function OrderBy($column, $direction = 'DESC')
     {
-        $param = $this->GetParametersConditions(__FUNCTION__);
+        $param = ExtractFunctionArgs::Get();
 
         $var = explode(',', $param)[0];
         $var = explode('->', $var);
@@ -135,24 +260,122 @@ class Database
         $this->response['limit'] = $limit;
     }
 
-    public function ToList($params = null): ?array
+    public function First()
     {
-        return $this->AuxSelect($params);
+        $this->limit = 1;
+        $data = $this->AuxSelect();
+
+        return isset($data[0]) ? $data[0] : null;
     }
 
-    private function AuxSelect($params = null)
+    public function ToList(): ?array
     {
-        //<editor-fold desc=" [ Compile Columns ] ">
-        $columns = array();
+        return $this->AuxSelect();
+    }
 
-        if (is_array($params) && count($params)) {
-            $params = $this->FixCustomMap($params);
+    public function Delete(IEntity $entity)
+    {
+        $this->saveChanges = 'delete';
+        $this->saveChangesEntity = $entity;
+    }
+
+    public function SaveChanges()
+    {
+        if ($this->saveChanges === 'update') {
+            return $this->AuxUpdate($this->saveChangesEntity);
+        } else if ($this->saveChanges === 'delete') {
+            return $this->AuxDelete($this->saveChangesEntity);
+        } else {
+            Response::Show(ResponseTypeEnum::BadRequest, 'Incomplete arguments for this action');
+            return false;
+        }
+    }
+
+    public function Query($query)
+    {
+        if ($this->debug) {
+            debugSql($query);
         }
 
-        foreach ($this->entities as $key => $value) {
-            foreach ($value as $keyColumns => $valueColumns) {
-                $columns[] = $this->drive->GetFormattedSelectColumns($key, $keyColumns);
+        return $this->drive->CustomQuery($query);
+    }
+
+    public function Status()
+    {
+        $this->drive->DBLink();
+
+        return true;
+    }
+
+    public function CloseConnection(bool $rollback = false)
+    {
+        $this->drive->DBClose($rollback);
+    }
+
+    private function Reset()
+    {
+        $this->defaultTable = null;
+        $this->maps = array();
+        $this->vars = array();
+        $this->colums = array();
+        $this->joins = array();
+        $this->conditions = array();
+        $this->orderBy = array();
+        $this->response = array(
+            'current' => 0,
+            'limit' => false,
+            'total' => 0,
+            'items' => array()
+        );
+        $this->limit = null;
+        $this->saveChanges = null;
+        $this->saveChangesEntity = null;
+    }
+
+    private function GetConditions()
+    {
+        $query = null;
+
+        if (count($this->conditions)) {
+            foreach ($this->conditions as $key => $value) {
+
+                if (is_array($value['compare']) && count($value['compare']) === 0) {
+                    continue;
+                } else if (is_array($value['compare'])) {
+                    $value['compare'] = '(' . implode(',', $value['compare']) . ')';
+                }
+
+                if (isset($value['agroup']) and $value['agroup'] === '(') {
+                    $query .= " {$value['operator']} (";
+
+                    $value['operator'] = null;
+                }
+
+                $value['condition'] = str_replace('==', '=', $value['condition']);
+
+                $query .= $this->drive->GetFormattedConditions($value['operator'], $value['entity'], $value['column'], $value['condition'], $value['compare']);
+
+                if (isset($value['agroup']) and $value['agroup'] === ')') {
+                    $query .= ')';
+                }
             }
+        }
+
+        return $query;
+    }
+
+    private function AuxSelect()
+    {
+        //<editor-fold desc=" [ Compile Columns ] ">
+        if ($this->resultModel === null) {
+            $this->resultModel = $this->NormalizeColumnsResult(array_keys($this->vars));
+        }
+
+        $columns = [];
+
+        foreach ($this->colums as $key => $value) {
+            $pathKey = explode('.', $value);
+            $columns[] = $this->drive->GetFormattedSelectColumns($pathKey[0], $pathKey[1]);
         }
 
         $columns = implode(', ', $columns);
@@ -269,25 +492,17 @@ class Database
 
             while ($res = $this->drive->FetchArray($result)) {
 
-                $fix = [];
+                $model = $this->resultModel;
 
-                if ($params && count($params)) {
-                    foreach ($params as $key => $value) {
-                        $fix[str_replace('$', null, $key)] = $this->FixMaps($this->vars[$key], $value, $res);
-                    }
+                $resultMap = $this->FixMaps($model, $res);
+
+                if (count($this->varsContent) === 1) {
+                    $resultMap = array_shift($resultMap);
                 } else {
-                    foreach ($this->vars as $key => $value) {
-                        $nameClassMap = str_replace('_', '\\', $value);
-                        $resultMap = new $nameClassMap;
-                        $fix[str_replace('$', null, $key)] = $this->FixMaps($value, $resultMap, $res);
-                    }
+                    $resultMap = (object)$resultMap;
                 }
 
-                if (count($fix) > 1) {
-                    $content[] = (object)$fix;
-                } else {
-                    $content[] = array_shift($fix);
-                }
+                $content[] = $resultMap;
             }
 
             if ($total !== null) {
@@ -303,19 +518,69 @@ class Database
         //</editor-fold>
     }
 
-    private function FixCustomMap($map)
+    private function JoinAux($joinPath, $of, $to = null, $toJoinPath = null, $required = true)
     {
-        $new = array();
+        $type = $required ? null : 'LEFT ';
 
-        foreach ($map as $key => $value) {
-            if (is_array($value)) {
-                $new[$key] = (object)$this->FixCustomMap($value);
+        $this->joins[$joinPath] = array('of' => $of, 'to' => $to, 'type' => $type, 'toEntity' => $toJoinPath);
+    }
+
+    private function GetPathCollumByString($value): array
+    {
+        $paths = explode('->', $value);
+        $isVar = strripos($paths[0], '$');
+
+        if (!$isVar === false) {
+            new ApiCustomException('Invalid Result Map');
+        }
+
+        $arrows = count($paths);
+        $runFor = $arrows;
+
+        if ($runFor > 1) {
+            $runFor = ($runFor - 1);
+        }
+
+        $path = null;
+
+        for ($i = 0; $i < $runFor; $i++) {
+            if ($i === 0 && key_exists($paths[$i], $this->vars)) {
+                $path .= "{$this->vars[$paths[$i]]}";
             } else {
-                $new[$value] = null;
+                $path .= "_{$paths[$i]}";
             }
         }
 
-        return $new;
+        $mainVarContent = null;
+
+        $varString = $paths[0];
+
+        $existInVars = key_exists($varString, $this->vars);
+
+        if ($existInVars && !key_exists($varString, $this->varsContent)) {
+            $entiyName = str_replace('_', '\\', $this->vars[$paths[0]]);
+            $this->varsContent[$varString] = $mainVarContent = new  $entiyName();
+        } else if ($existInVars) {
+            $mainVarContent = $this->varsContent[$varString];
+        }
+
+        eval('' . $varString . '= $mainVarContent;');
+
+        $content = null;
+
+        eval('$content = ' . $value . ';');
+
+        $typeContent = gettype($content);
+
+        if ($arrows > 1) {
+            $end = $typeContent === 'object' ? '_' : '.';
+
+            $path .= "{$end}{$paths[($arrows - 1)]}";
+        }
+
+        $key = str_replace('$', null, $paths[$arrows - 1]);
+
+        return ['exploded' => $paths, 'key' => $key, 'column' => $path, 'type' => $typeContent, 'content' => $content];
     }
 
     private function GetConditionsPrimaryKeys($entityName, ?array $properties)
@@ -340,84 +605,6 @@ class Database
         return $query;
     }
 
-    private function GetParametersConditions(string $part)
-    {
-        $bt = debug_backtrace();
-        $file = file($bt[1]['file']);
-        $src = $this->GetParametersConditionsAux($part, $file, ($bt[1]['line'] - 1));
-        $part = '#(.*)' . $part . ' *?\( *?(.*) *?\)(.*)([\n])#i';
-        return $var = preg_replace($part, '$2', $src);
-    }
-
-    private function GetParametersConditionsAux($part, $file, $line)
-    {
-        $rowsUp = $this->GetParametersConditionsUp($part, $file, $line);
-        $rowsDow = $this->GetParametersConditionsDown($file, $line + 1, $rowsUp);
-        return trim(str_replace("\r\n ", '', $rowsDow), ' ');
-    }
-
-    private function GetParametersConditionsUp($part, $file, $line, $src = null)
-    {
-        if ($line < 0 or !isset($file[$line])) {
-            new ApiCustomException('Invalid class content');
-        }
-
-        $row = $file[$line];
-
-        if (preg_match("/{$part}\(/i", $row)) {
-            return ($row . $src);
-        } else {
-            return $this->GetParametersConditionsUp($part, $file, $line - 1, ($row . $src));
-        }
-    }
-
-    private function GetParametersConditionsDown($file, $line, $src)
-    {
-        if ($line < 0 or !isset($file[$line])) {
-            new ApiCustomException('Invalid class content');
-        }
-
-        $row = $file[$line];
-
-        if (preg_match('/\);/i', $src)) {
-            return $src;
-        } else {
-            return $this->GetParametersConditionsDown($file, $line + 1, $src . $row);
-        }
-    }
-
-    private function GetConditions()
-    {
-        $query = null;
-
-        if (count($this->conditions)) {
-            foreach ($this->conditions as $key => $value) {
-
-                if (is_array($value['compare']) && count($value['compare']) === 0) {
-                    continue;
-                } else if (is_array($value['compare'])) {
-                    $value['compare'] = '(' . implode(',', $value['compare']) . ')';
-                }
-
-                if (isset($value['agroup']) and $value['agroup'] === '(') {
-                    $query .= " {$value['operator']} (";
-
-                    $value['operator'] = null;
-                }
-
-                $value['condition'] = str_replace('==', '=', $value['condition']);
-
-                $query .= $this->drive->GetFormattedConditions($value['operator'], $value['entity'], $value['column'], $value['condition'], $value['compare']);
-
-                if (isset($value['agroup']) and $value['agroup'] === ')') {
-                    $query .= ')';
-                }
-            }
-        }
-
-        return $query;
-    }
-
     private function GetEntities($entity, $path, $property)
     {
         $this->maps[$path] = $entity::_table;
@@ -429,125 +616,96 @@ class Database
                     $this->JoinAux("{$path}_{$key}", $setting->of, $setting->to, $path, $setting->required);
 
                     $this->GetEntities($setting->from, "{$path}_{$key}", (array)$value);
-                } else {
-                    $this->entities[$path][$key] = null;
                 }
             }
         }
     }
 
-    private function FixMaps($entity, $propriety, $result)
+    private function FixMaps($model, $result)
     {
-        $changed = false;
+        $typeModel = gettype($model);
 
-        foreach ($propriety as $key => $value) {
+        foreach ($model as $key => $value) {
             if (gettype($value) === 'object') {
-                $propriety->$key = $this->FixMaps("{$entity}_{$key}", $value, $result);
-            } else {
 
-                if (key_exists("{$entity}.{$key}", $result)) {
+                $fixed = $this->FixMaps(clone($value), $result);
 
-                    $propriety->$key = Content::Fix($result["{$entity}.{$key}"]);
-
-                     if (method_exists($propriety, $key)) {
-                        $propriety->$key = $propriety::$key($propriety->$key);
-                    }
-
-                    unset($result["{$entity}.{$key}"]);
-
-                    $changed = true;
-                }
-            }
-        }
-
-        return $changed ? $propriety : null;
-    }
-
-    public function Insert(IEntity $entity)
-    {
-        $entity->ImportData(null, true);
-
-        $entityName = get_class($entity);
-        $properties = (array)$entity;
-
-        $fields = [];
-        $values = null;
-
-        if (count($properties)) {
-            foreach ($properties as $key => $value) {
-
-                if (defined("{$entityName}::_id") && key_exists($key, $entityName::_id) && $entityName::_id[$key]) {
-                    continue;
-                }
-
-                $fields[] = $this->drive->GetFormattedInsertColumns($key);
-
-                if (gettype($value) === 'integer' || gettype($value) === 'double') {
-                    $values .= $values === null ? $value : ",{$value}";
-                } else if (gettype($value) === 'boolean') {
-                    $values .= $values === null ? $value : ',' . +$value;
-                } else if ($value === null) {
-                    $values .= $values === null ? $value : ', NULL';
+                if ($typeModel === 'object') {
+                    $model->$key = $fixed;
                 } else {
-                    $values .= $values === null ? "'{$value}'" : ",'{$value}'";
+                    $model[$key] = $fixed;
                 }
-            }
-        }
-
-        $query = "INSERT INTO " . $entity::_table . " (" . implode(',', $fields) . ") VALUES({$values}); ";
-
-        if ($this->debug) {
-            debugSql($query, 2);
-        }
-
-        $result = null;
-
-        $execute = $this->drive->Execute($query) or die($this->drive->DBReport($query));
-
-        if ($execute) {
-            if (defined("{$entityName}::_id")) {
-
-                $recentId = $this->drive->GetRecentId();
-
-                $DB = new Database();
-                $DB->Select($e = new $entityName);
-
-                foreach ($entityName::_id as $key => $autoIncrement) {
-                    if ($autoIncrement && $recentId) {
-                        $DB->Where($key, '=', $recentId, null, '$e');
-                    } else if (key_exists($key, $properties)) {
-                        $DB->Where($key, '=', $properties[$key], null, '$e');
-                    }
-                }
-
-                $result = $DB->First();
 
             } else {
-                $result = $entity;
-            }
 
-            $this->Log($result);
+                if (key_exists($value, $result)) {
+
+                    if ($typeModel === 'object') {
+                        $model->$key = Content::Fix($result[$value]);
+
+                        if (method_exists($model, $key)) {
+                            $model->$key = $model::$key($model->$key);
+                        }
+                    } else {
+                        $model[$key] = Content::Fix($result[$value]);
+                    }
+                }
+            }
         }
 
-        $this->Reset();
-
-        return $result;
+        return $model;
     }
 
-    public function Select(IEntity $entity = null)
+    private function NormalizeColumnsResult($args, string $entityString = null)
     {
-        $entityClass = get_class($entity);
+        $new = [];
 
-        $this->defaultTable = $path = str_replace('\\', '_', $entityClass);
+        $argsType = gettype($args);
 
-        $param = $this->GetParametersConditions(__FUNCTION__);
+        if ($argsType === 'object') {
+            $new = $args;
+        }
 
-        $var = explode(' = ', $param);
-        $var = trim($var[0]);
+        foreach ($args as $key => $value) {
+            $keyType = gettype($key);
+            $valueType = gettype($value);
 
-        $this->vars[$var] = $path;
+            if ($valueType === 'string') {
+                $path = $this->GetPathCollumByString($value);
+                $pathType = $path['type'];
+                $pathKey = $path['key'];
+                $pathColumn = $path['column'];
+                $pathContent = $path['content'];
 
-        $this->GetEntities($entityClass, $path, (array)$entity);
+                if ($pathType === 'object') {
+                    $new[$pathKey] = $this->NormalizeColumnsResult($pathContent, $pathColumn);
+                } else {
+                    $new[$pathKey] = $pathColumn;
+
+                    if (!in_array($pathColumn, $this->colums)) {
+                        $this->colums[] = $pathColumn;
+                    }
+                }
+            } else if ($keyType === 'string' && $valueType === 'object') {
+                $new->$key = $this->NormalizeColumnsResult($value, "{$entityString}_$key");
+            } else if ($keyType === 'string' && $valueType === 'array') {
+                $new[$key] = (object)$this->NormalizeColumnsResult($value);
+            } else if ($keyType === 'string' && $valueType === 'NULL') {
+                $pathColumn = "{$entityString}.$key";
+
+                if ($argsType === 'object') {
+                    $new->$key = $pathColumn;
+                } else {
+                    $new[$key] = $pathColumn;
+                }
+
+                if (!in_array($pathColumn, $this->colums)) {
+                    $this->colums[] = $pathColumn;
+                }
+            }
+        }
+
+        return $new;
     }
 
     private function AddConditions($param, $defaultColumn, $condition, $compare, string $operator, $agroup, string $defaultEntityVar = null)
@@ -557,6 +715,7 @@ class Database
         $defaultVar = $var;
 
         $var = explode('->', $var);
+
         $entity = null;
 
         if (count($var) === 1 && $var[0] == '$key') {
@@ -574,7 +733,7 @@ class Database
         }
 
         if ($entity === null && count($var) >= 2) {
-            new ApiCustomException("Limite classes filhas atingidas para condição {$defaultVar}");
+            new ApiCustomException("Limit child classes reached for condition  {$defaultVar}");
         } else if ($entity === null && count($var) === 1) {
             $subClass = $var[0];
             $nameClassMap = get_class($this->saveChangesEntity);
@@ -585,55 +744,6 @@ class Database
         }
 
         $this->conditions[] = array('entity' => $entity, 'column' => $column, 'condition' => $condition, 'compare' => $compare, 'operator' => $operator, 'agroup' => $agroup);
-    }
-
-    public function Where($defaultColumn, string $condition, $compare = null, string $agroup = null, string $defaultEntityVar = null)
-    {
-        $param = $this->GetParametersConditions(__FUNCTION__);
-        $this->AddConditions($param, $defaultColumn, $condition, $compare, 'AND', $agroup, $defaultEntityVar);
-    }
-
-    public function And($defaultColumn, string $condition, $compare = null, string $agroup = null, string $defaultEntityVar = null)
-    {
-        $param = $this->GetParametersConditions(__FUNCTION__);
-        $this->AddConditions($param, $defaultColumn, $condition, $compare, 'AND', $agroup, $defaultEntityVar);
-    }
-
-    public function Or($defaultColumn, string $condition, $compare = null, string $agroup = null, string $defaultEntityVar = null)
-    {
-        $param = $this->GetParametersConditions(__FUNCTION__);
-        $this->AddConditions($param, $defaultColumn, $condition, $compare, 'OR', $agroup, $defaultEntityVar);
-    }
-
-    public function First($params = null)
-    {
-        $data = $this->AuxSelect($params);
-
-        return isset($data[0]) ? $data[0] : null;
-    }
-
-    public function Update(IEntity $entity)
-    {
-        $this->saveChanges = 'update';
-        $this->saveChangesEntity = $entity;
-    }
-
-    public function Delete(IEntity $entity)
-    {
-        $this->saveChanges = 'delete';
-        $this->saveChangesEntity = $entity;
-    }
-
-    public function SaveChanges()
-    {
-        if ($this->saveChanges === 'update') {
-            return $this->AuxUpdate($this->saveChangesEntity);
-        } else if ($this->saveChanges === 'delete') {
-            return $this->AuxDelete($this->saveChangesEntity);
-        } else {
-            Response::Show(ResponseTypeEnum::BadRequest, 'Argumentos incompletos para está ação');
-            return false;
-        }
     }
 
     private function AuxUpdate(IEntity $entity)
@@ -662,7 +772,7 @@ class Database
         }
 
         if ($query === null) {
-            new ApiCustomException('Não parametros para continurar com a alteração = Update');
+            new ApiCustomException('No parameters to continue with the change = Update');
         }
 
         $query = "UPDATE " . $entity::_table . " SET {$fields} {$this->drive->GetFormattedConditionStart()} {$query}";
@@ -719,7 +829,7 @@ class Database
         $query .= $this->GetConditions();
 
         if ($query === null) {
-            new ApiCustomException('Não parametros para continurar com a alteração = Update');
+            new ApiCustomException('No parameters to continue with the change = Update');
         }
 
         $items = null;
@@ -816,26 +926,5 @@ class Database
                 $this->drive->Execute($query) or die($this->drive->DBReport($query));
             }
         }
-    }
-
-    public function Query($query)
-    {
-        if ($this->debug) {
-            debugSql($query);
-        }
-
-        return $this->drive->CustomQuery($query);
-    }
-
-    public function Status()
-    {
-        $this->drive->DBLink();
-
-        return true;
-    }
-
-    public function CloseConnection(bool $rollback = false)
-    {
-        $this->drive->DBClose($rollback);
     }
 }
