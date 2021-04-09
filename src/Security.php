@@ -128,7 +128,7 @@ class Security
             $signature = $this->CheckSignature($secret);
 
             if ($signature) {
-                $date = $session->Update($this->device);
+                $date = $session->Renew($this->device);
                 $this->iat = $date->getTimestamp();
                 return true;
             }
