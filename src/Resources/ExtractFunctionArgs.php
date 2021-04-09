@@ -48,7 +48,11 @@ class ExtractFunctionArgs
 
         $row = $file[$line];
 
-        if (preg_match('/\);/i', $src)) {
+        if (preg_match('/\)\r\n/i', $src)) {
+
+            return str_replace(")\r\n", ');', $src);
+
+        } else if (preg_match('/\);/i', $src)) {
             return $src;
         } else {
             return self::Down($file, $line + 1, $src . $row);

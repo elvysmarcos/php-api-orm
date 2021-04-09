@@ -128,9 +128,11 @@ class Database
     {
         $this->saveChanges = 'update';
         $this->saveChangesEntity = $entity;
+
+        return $this;
     }
 
-    public function Select(IEntity $entity = null)
+    public function From(IEntity $entity = null)
     {
         $entityClass = get_class($entity);
 
@@ -144,24 +146,32 @@ class Database
         $this->vars[$var] = $path;
 
         $this->GetEntities($entityClass, $path, (array)$entity);
+
+        return $this;
     }
 
     public function Where($defaultColumn, string $condition, $compare = null, string $agroup = null, string $defaultEntityVar = null)
     {
         $param = ExtractFunctionArgs::Get();
         $this->AddConditions($param, $defaultColumn, $condition, $compare, 'AND', $agroup, $defaultEntityVar);
+
+        return $this;
     }
 
     public function And($defaultColumn, string $condition, $compare = null, string $agroup = null, string $defaultEntityVar = null)
     {
         $param = ExtractFunctionArgs::Get();
         $this->AddConditions($param, $defaultColumn, $condition, $compare, 'AND', $agroup, $defaultEntityVar);
+
+        return $this;
     }
 
     public function Or($defaultColumn, string $condition, $compare = null, string $agroup = null, string $defaultEntityVar = null)
     {
         $param = ExtractFunctionArgs::Get();
         $this->AddConditions($param, $defaultColumn, $condition, $compare, 'OR', $agroup, $defaultEntityVar);
+
+        return $this;
     }
 
     public function Join(IEntity $entity, $of, $to, $required = true)
@@ -195,9 +205,11 @@ class Database
         }
 
         $this->JoinAux($entityOf, $columnOf, $columnTo, $entityTo, $required);
+
+        return $this;
     }
 
-    public function Columns(array $columns)
+    public function Select(array $columns)
     {
         $columnsTipe = gettype($columns);
 
@@ -231,6 +243,8 @@ class Database
         }
 
         $this->resultModel = $this->NormalizeColumnsResult($args);
+
+        return $this;
     }
 
     public function OrderBy($column, $direction = 'DESC')
@@ -252,12 +266,16 @@ class Database
             'column' => $column,
             'direction' => $direction
         );
+
+        return $this;
     }
 
     public function PageResponse($current = 0, $limit = 25)
     {
         $this->response['current'] = $current;
         $this->response['limit'] = $limit;
+
+        return $this;
     }
 
     public function First()
@@ -277,6 +295,8 @@ class Database
     {
         $this->saveChanges = 'delete';
         $this->saveChangesEntity = $entity;
+
+        return $this;
     }
 
     public function SaveChanges()
@@ -339,9 +359,11 @@ class Database
         if (count($this->conditions)) {
             foreach ($this->conditions as $key => $value) {
 
-                if (is_array($value['compare']) && count($value['compare']) === 0) {
+                $compareType = gettype($value['compare']);
+
+                if ($compareType === 'array' && count($value['compare']) === 0) {
                     continue;
-                } else if (is_array($value['compare'])) {
+                } else if ($compareType === 'array') {
                     $value['compare'] = '(' . implode(',', $value['compare']) . ')';
                 }
 
@@ -732,14 +754,16 @@ class Database
             $entity = isset($this->vars[$entity]) ? $this->vars[$entity] : null;
         }
 
-        if ($entity === null && count($var) >= 2) {
+        $countVar = count($var);
+
+        if ($entity === null && $countVar >= 2) {
             new ApiCustomException("Limit child classes reached for condition  {$defaultVar}");
-        } else if ($entity === null && count($var) === 1) {
+        } else if ($entity === null && $countVar === 1) {
             $subClass = $var[0];
             $nameClassMap = get_class($this->saveChangesEntity);
             $settings = $nameClassMap::$subClass();
             $column = $settings->to;
-        } else if ($entity !== null && count($var)) {
+        } else if ($entity !== null && $countVar) {
             $entity .= '_' . implode('_', $var);
         }
 
