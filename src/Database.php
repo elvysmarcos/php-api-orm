@@ -51,6 +51,29 @@ class Database
         }
     }
 
+    private function Reset()
+    {
+        $this->limit = null;
+        $this->resultModel = null;
+        $this->defaultTable = null;
+        $this->maps = array();
+        $this->vars = array();
+        $this->varsContent = array();
+        $this->colums = array();
+        $this->joins = array();
+        $this->conditions = array();
+        $this->orderBy = array();
+        $this->response = array(
+            'current' => 0,
+            'limit' => false,
+            'total' => 0,
+            'items' => array()
+        );
+        $this->saveChanges = null;
+        $this->saveChangesEntity = null;
+        $this->log = null;
+    }
+
     public function Insert(IEntity $entity)
     {
         $entity->ImportData(null, true);
@@ -90,7 +113,6 @@ class Database
             debugSql($query, 2);
         }
 
-        $result = null;
 
         $execute = $this->drive->Execute($query) or die($this->drive->DBReport($query));
 
@@ -100,7 +122,7 @@ class Database
                 $recentId = $this->drive->GetRecentId();
 
                 $DB = new Database();
-                $DB->Select($e = new $entityName);
+                $DB->From($e = new $entityName);
 
                 foreach ($entityName::_id as $key => $autoIncrement) {
                     if ($autoIncrement && $recentId) {
@@ -110,18 +132,15 @@ class Database
                     }
                 }
 
-                $result = $DB->First();
-
-            } else {
-                $result = $entity;
+                $entity = $DB->First();
             }
 
-            $this->Log($result);
+            $this->Log($entity);
         }
 
         $this->Reset();
 
-        return $result;
+        return $entity;
     }
 
     public function Update(IEntity $entity)
@@ -330,26 +349,6 @@ class Database
     public function CloseConnection(bool $rollback = false)
     {
         $this->drive->DBClose($rollback);
-    }
-
-    private function Reset()
-    {
-        $this->defaultTable = null;
-        $this->maps = array();
-        $this->vars = array();
-        $this->colums = array();
-        $this->joins = array();
-        $this->conditions = array();
-        $this->orderBy = array();
-        $this->response = array(
-            'current' => 0,
-            'limit' => false,
-            'total' => 0,
-            'items' => array()
-        );
-        $this->limit = null;
-        $this->saveChanges = null;
-        $this->saveChangesEntity = null;
     }
 
     private function GetConditions()
@@ -813,7 +812,7 @@ class Database
             if (defined("{$entityName}::_id")) {
 
                 $DB = new Database();
-                $DB->Select($e = new $entityName);
+                $DB->From($e = new $entityName);
 
                 foreach ($entityName::_id as $key => $autoIncrement) {
                     $condition = '=';
@@ -900,12 +899,12 @@ class Database
                 $typeOperation = DBOperationTypeEnum::Delete;
             }
 
-            if (is_array($config)
-                && key_exists('type', $config)
-                && key_exists('filterAuthor', $config)
-                && key_exists($typeOperation, $config['filterAuthor'])
+            if ($config instanceof LogEntityConfig
+                && isset($config->type)
+                && isset($config->filterAuthor)
+                && key_exists($typeOperation, $config->filterAuthor)
             ) {
-                $type = $config['type'];
+                $type = $config->type;
 
                 $reference = [];
 
@@ -929,7 +928,7 @@ class Database
 
                 $author = null;
 
-                if ($config['filterAuthor'][$typeOperation]) {
+                if ($config->filterAuthor[$typeOperation]) {
                     $author = $this->log->GetAuthor($fullClass);
                 }
 

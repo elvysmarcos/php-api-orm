@@ -4,6 +4,8 @@ namespace APIORM;
 
 use APIORM\Enums\ResponseTypeEnum;
 use DateTime;
+use SAWToolkit\Resources\Dates;
+use SAWToolkit\Resources\FormatDate;
 
 class Security
 {
@@ -34,9 +36,9 @@ class Security
         $signature = null;
 
         if (count($parameters) === 3) {
-            $this->header = json_decode(Encryption::Base64UrlDecode($parameters[0]), true);
-            $this->payload = json_decode(Encryption::Base64UrlDecode($parameters[1]), true);
-            $this->signature = $parameters[2];
+            $this->header = json_decode(Encryption::Base64Decode($parameters[0]), true);
+            $this->payload = json_decode(Encryption::Base64Decode($parameters[1]), true);
+            $this->signature = str_replace('+', null, $parameters[2]);
             $this->device = $this->payload['device'];
         }
     }
@@ -63,7 +65,7 @@ class Security
         if (is_array($data) && count($data) === 3) {
             $date = new DateTime(date('Y-m-d H:i:s', $data[2]));
             $verify = $date->modify('+1 year');
-            $now = new DateTime();
+            $now = Dates::Date(FormatDate::Full);
 
             if ($verify > $now) {
                 return $data[1];
@@ -87,13 +89,17 @@ class Security
             'device' => $device
         );
 
+        if (key_exists('SESSION_CACHE_SECRET', $_ENV)) {
+            $payload['cache'] = md5("{$_ENV['SESSION_CACHE_SECRET']}{$this->iat}");
+        }
+
         if (is_array($customPayload) and count($customPayload)) {
             $payload = array_merge($payload, $customPayload);
         }
 
-        $raw = Encryption::Base64UrlEncode(json_encode($header)) . '.' . Encryption::Base64UrlEncode(json_encode($payload));
+        $raw = Encryption::Base64Encode(json_encode($header)) . '.' . Encryption::Base64Encode(json_encode($payload));
 
-        $signature = Encryption::Base64UrlEncode(hash_hmac('sha256', $raw, $secret, true));
+        $signature = Encryption::Base64Encode(hash_hmac('sha256', $raw, $secret, true));
 
         return "{$raw}.{$signature}";
     }
@@ -101,14 +107,13 @@ class Security
     private function CheckSignature($secret)
     {
         if (count($this->header) && count($this->payload)) {
-            $signature = Encryption::Base64UrlEncode(
-                hash_hmac(
-                    'sha256',
-                    Encryption::Base64UrlEncode(json_encode($this->header)) . '.' . Encryption::Base64UrlEncode(json_encode($this->payload)),
-                    $secret,
-                    true
-                )
-            );
+
+            $raw = Encryption::Base64Encode(json_encode($this->header))
+                . '.'
+                . Encryption::Base64Encode(json_encode($this->payload));
+
+            $signature = Encryption::Base64Encode(hash_hmac('sha256', $raw, $secret, true));
+            $signature = str_replace(['+', ' '], '', $signature);
 
             if ($this->signature == $signature) {
                 return true;
@@ -120,20 +125,53 @@ class Security
 
     public function AuthenticatedRegion(ISession $session)
     {
-        $session->Destroy();
-
         if ($this->device) {
+
+            $owner = $this->ExtractDataDevice($this->device);
+
+            if (!$session->GetStatusIgnoreCache() && key_exists('SESSION_CACHE_SECRET', $_ENV) && key_exists('cache', $this->payload)) {
+                $cache = md5("{$_ENV['SESSION_CACHE_SECRET']}{$this->payload['iat']}");
+
+                if (
+                    $cache === $this->payload['cache']
+                    && $owner
+                ) {
+                    $session->RenewByCache($owner, $this->device);
+                    return true;
+                }
+            }
+
+            $session->Destroy();
+
+            $owner = $this->ExtractDataDevice($this->device);
+
             $secret = $session->GetSecret($this->device);
 
             $signature = $this->CheckSignature($secret);
 
             if ($signature) {
-                $date = $session->Renew($this->device);
-                $this->iat = $date->getTimestamp();
+                $session->Renew($owner, $this->device);
                 return true;
             }
         }
 
+        $session->Destroy();
+
         Response::Show(ResponseTypeEnum::Unauthorized, $session->GetUnauthorizedText());
+    }
+
+    private function CheckSessionByProvider(string $url)
+    {
+        $session = curl_init($url);
+
+        curl_exec($session);
+
+        if (curl_error($session)) {
+            curl_close($session);
+            return false;
+        }
+
+        curl_close($session);
+        return true;
     }
 }

@@ -10,5 +10,5 @@ interface ILogConfig
 
     public static function GetAuthor(string $path = null): ?int;
 
-    public static function GetTypeLog(string $path): ?array;
+    public static function GetTypeLog(string $path): ?LogEntityConfig;
 }

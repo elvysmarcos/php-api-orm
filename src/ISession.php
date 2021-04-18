@@ -14,7 +14,11 @@ interface ISession
 
     public function GetSecret(string $device): ?string;
 
-    public function Renew(string $device): \DateTime;
+    public function GetStatusIgnoreCache(): bool;
+
+    public function Renew(string $owner, string $device): void;
+
+    public function RenewByCache(string $owner, string $device): void;
 
     public function Destroy();
 

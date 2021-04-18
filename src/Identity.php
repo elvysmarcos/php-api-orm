@@ -4,15 +4,13 @@
 namespace APIORM;
 
 
-use DateTime;
-
 class Identity
 {
     public string $owner;
     public string $secret;
-    public DateTime $expire;
+    public string $expire;
 
-    public function __construct(string $owner = null, string $secret = null, DateTime $expire = null)
+    public function __construct($owner = null, string $secret = null, string $expire = null)
     {
         if ($owner) {
             $this->owner = $owner;

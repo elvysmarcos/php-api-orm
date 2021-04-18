@@ -13,7 +13,8 @@ class ApiCustomException extends Exception
         parent::__construct($message, $code, $previous);
 
         if (isset($_SESSION['link'])) {
-            mysqli_rollback($_SESSION['link']);
+            $database = new Database();
+            $database->CloseConnection(true);
         }
 
         Response::Show(ResponseTypeEnum::BadRequest, $message);

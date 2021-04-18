@@ -1,10 +1,15 @@
 <?php
 function debug($text, $dump = false, $line = 0)
 {
-    if ($_ENV['ENVIRONMENT'] == '#{ENVIRONMENT}#') {
+    if ($_ENV['ENVIRONMENT'] == 'local') {
         $fp = fopen($_ENV['PATH_ROOT'] . 'Logs/DEBUG', "a+");
 
-        is_array($text) ? $dump = true : null;
+        switch (gettype($text)) {
+            case 'object':
+                $text = (array)$text;
+            case 'array':
+                $dump = true;
+        }
 
         $backtrace = debug_backtrace();
 

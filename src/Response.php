@@ -42,6 +42,7 @@ class Response
         if (in_array($code, [ResponseTypeEnum::Exception, ResponseTypeEnum::BadRequest])) {
             $rollback = true;
         }
+        
         $database->CloseConnection($rollback);
     }
 }

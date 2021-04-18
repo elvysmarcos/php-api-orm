@@ -20,7 +20,7 @@ class Route
         $empty = true;
 
         if (count($routers)) {
-            $path = $_ENV['PATH_ROOT'] . 'Controller/';
+            $path = $_ENV['PATH_ROOT'] . 'Controllers/';
 
             foreach ($routers as $key => $value) {
 
@@ -80,7 +80,9 @@ class Route
 
         $very = true;
 
-        if (count($routes) == count($this->route)) {
+        $countRoutes = is_array($routes) ? count($routes) : 0;
+
+        if ($countRoutes == count($this->route)) {
 
             try {
                 $fx = new \ReflectionFunction($execute);
@@ -119,7 +121,7 @@ class Route
                 }
             }
 
-            if (count($routes)) {
+            if ($countRoutes) {
                 foreach ($routes as $key => $value) {
 
                     $start = substr($value, 0, 1);
@@ -148,6 +150,7 @@ class Route
 
                 foreach ($args as $key => $value) {
                     $fullKeyName = str_replace('$', '', $key);
+                    $valueType = gettype($value);
 
                     if ($countPostArg && key_exists($fullKeyName, $postArg)) {
                         $postValue = $this->GetTypeValue($postArg[$fullKeyName], $argsType[$fullKeyName]);
@@ -157,9 +160,9 @@ class Route
                         $getValue = $this->GetTypeValue($getArgs[$fullKeyName], $argsType[$fullKeyName]);
                         $args[$key] = $getValue;
                         $argsResult[] = $getValue;
-                    } else if ($value !== null && !is_array($value)) {
+                    } else if ($value !== null && $valueType !== 'array') {
                         $argsResult[] = $this->GetTypeValue($value, $argsType[$fullKeyName]);
-                    } else if ($value !== null && is_array($value)) {
+                    } else if ($value !== null && $valueType === 'array') {
                         $argsResult[] = $this->GetTypeValue($postArg, $argsType[$fullKeyName]);
                     } else if (key_exists($fullKeyName, $argsDefaultResult)) {
                         $argsResult[] = $this->GetTypeValue($argsDefaultResult[$fullKeyName], $argsType[$fullKeyName]);

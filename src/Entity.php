@@ -6,7 +6,7 @@ use APIORM\Resources\Content;
 
 class Entity implements IEntity
 {
-    function ImportData($data = null, $extractFK = false)
+    function ImportData($data = null, $extractFK = false): void
     {
         if ($data === null) {
             $data = clone($this);
@@ -75,5 +75,12 @@ class Entity implements IEntity
         }
 
         return $target;
+    }
+
+    function Clone(IEntity $entity): void
+    {
+        foreach ($entity as $key => $value) {
+            $this->$key = $entity->$key;
+        }
     }
 }
