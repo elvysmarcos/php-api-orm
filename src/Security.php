@@ -38,7 +38,7 @@ class Security
         if (count($parameters) === 3) {
             $this->header = json_decode(Encryption::Base64Decode($parameters[0]), true);
             $this->payload = json_decode(Encryption::Base64Decode($parameters[1]), true);
-            $this->signature = str_replace('+', null, $parameters[2]);
+            $this->signature = str_replace(['+', ' '], null, $parameters[2]);
             $this->device = $this->payload['device'];
         }
     }
@@ -113,7 +113,7 @@ class Security
                 . Encryption::Base64Encode(json_encode($this->payload));
 
             $signature = Encryption::Base64Encode(hash_hmac('sha256', $raw, $secret, true));
-            $signature = str_replace(['+', ' '], '', $signature);
+            $signature = str_replace(['+', ' '], null, $signature);
 
             if ($this->signature == $signature) {
                 return true;
