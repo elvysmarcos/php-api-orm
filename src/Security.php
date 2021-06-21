@@ -4,8 +4,6 @@ namespace APIORM;
 
 use APIORM\Enums\ResponseTypeEnum;
 use DateTime;
-use SAWToolkit\Resources\Dates;
-use SAWToolkit\Resources\FormatDate;
 
 class Security
 {
@@ -65,7 +63,7 @@ class Security
         if (is_array($data) && count($data) === 3) {
             $date = new DateTime(date('Y-m-d H:i:s', $data[2]));
             $verify = $date->modify('+1 year');
-            $now = Dates::Date(FormatDate::Full);
+            $now = new DateTime();
 
             if ($verify > $now) {
                 return $data[1];
