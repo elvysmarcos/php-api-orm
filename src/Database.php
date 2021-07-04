@@ -399,7 +399,7 @@ class Database
             $columns[] = $this->drive->GetFormattedSelectColumns($pathKey[0], $pathKey[1]);
         }
 
-        $columns = implode(', ', $columns);
+        $columns = implode(',', $columns);
         //</editor-fold>
 
         $query = $this->drive->GetFormattedSelectQuery($this->maps[$this->defaultTable], $this->defaultTable, $columns);

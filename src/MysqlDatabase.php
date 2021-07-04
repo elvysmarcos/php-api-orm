@@ -16,7 +16,7 @@ class MysqlDatabase implements IDatabaseDrive
 
     public function GetFormattedSelectColumns(string $entity, string $column)
     {
-        return " `{$entity}`.`{$column}` AS '{$entity}.{$column}'";
+        return "`{$entity}`.`{$column}` AS '{$entity}.{$column}'";
     }
 
     public function GetFormattedSelectQuery(string $table, string $entity, string $columns)
@@ -50,7 +50,7 @@ class MysqlDatabase implements IDatabaseDrive
 
     public function GetFormattedJoinQuery(?string $type, string $table, string $entity, string $conditions)
     {
-        return " {$type}JOIN {$table} `{$entity}` ON {$conditions}";
+        return "{$type}JOIN {$table} `{$entity}` ON {$conditions}";
     }
 
     public function GetFormattedFullLimit(int $current, int $limit)
@@ -70,7 +70,7 @@ class MysqlDatabase implements IDatabaseDrive
 
     public function GetFormattedEqualityComparison(string $ofEntity, string $ofColumn, string $toEntity, string $toColumn)
     {
-        return " `{$ofEntity}`.`{$ofColumn}` = `{$toEntity}`.`{$toColumn}`";
+        return "`{$ofEntity}`.`{$ofColumn}` = `{$toEntity}`.`{$toColumn}`";
     }
 
     public function GetFormattedConditionStart()

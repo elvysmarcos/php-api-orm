@@ -48,7 +48,7 @@ class SqlDataBase implements IDatabaseDrive
 
     public function GetFormattedJoinQuery(?string $type, string $table, string $entity, string $conditions)
     {
-        return " {$type}JOIN {$table} [{$entity}] ON {$conditions}";
+        return "{$type}JOIN {$table} [{$entity}] ON {$conditions}";
     }
 
     public function GetFormattedFullLimit(int $current, int $limit)
