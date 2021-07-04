@@ -81,7 +81,10 @@ class MysqlDatabase implements IDatabaseDrive
     public function GetFormattedConditions(?string $operator, ?string $entity, string $column, string $condition, ?string $compare)
     {
         $query = null;
-        $entity = $entity ? " `{$entity}`." : null;
+
+        $operator = $operator ? " {$operator} " : null;
+
+        $entity = $entity ? "`{$entity}`." : null;
 
         $condition = strtoupper(trim($condition));
 
@@ -96,18 +99,18 @@ class MysqlDatabase implements IDatabaseDrive
             case '<':
             case '>=':
             case '<=':
-                $query = " {$operator} {$entity}`{$column}` {$condition} '{$compare}'";
+                $query = "{$operator}{$entity}`{$column}` {$condition} '{$compare}'";
                 break;
             case 'LIKE':
-                $query = " {$operator} {$entity}`{$column}` LIKE '{$compare}'";
+                $query = "{$operator}{$entity}`{$column}` LIKE '{$compare}'";
                 break;
             case 'IN':
             case 'NOT IN':
-                $query = " {$operator} {$entity}`{$column}` {$condition} {$compare}";
+                $query = "{$operator}{$entity}`{$column}` {$condition} {$compare}";
                 break;
             case 'IS NULL':
             case 'IS NOT NULL':
-                $query = " {$operator} {$entity}`{$column}` {$condition}";
+                $query = "{$operator}{$entity}`{$column}` {$condition}";
                 break;
         }
 
